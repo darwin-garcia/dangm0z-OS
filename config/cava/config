@@ -1,0 +1,133 @@
+# █║▌│█│║▌║││█║▌║ ║▌║▌║█│▌║▌█ █║▌│█│║▌║││█║▌║ ║▌║▌║█│▌║▌█ █║▌│█│║▌║││█║▌║ ║▌║▌║█│▌║▌█ █║▌│█│║▌║││█
+#      ______    ______   __     __   ______        
+#     /      \  /      \ /  |   /  | /      \       
+#    /$$$$$$  |/$$$$$$  |$$ |   $$ |/$$$$$$  |      
+#    $$ |  $$/ $$ |__$$ |$$ |   $$ |$$ |__$$ |      
+#    $$ |      $$    $$ |$$  \ /$$/ $$    $$ |      
+#    $$ |   __ $$$$$$$$ | $$  /$$/  $$$$$$$$ |      
+#    $$ \__/  |$$ |  $$ |  $$ $$/   $$ |  $$ |      
+#    $$    $$/ $$ |  $$ |   $$$/    $$ |  $$ |      
+#     $$$$$$/  $$/   $$/     $/     $$/   $$/       
+#                                                   
+#    ♬·¯·♩¸¸♪·¯·♫ ★ Ｆɛɛʟ ȶɦɛ Mυֆɨς ★ ♫·¯·♪¸¸♩·¯·♬¸¸                                            
+# 
+# █║▌│█│║▌║││█║▌║ ║▌║▌║█│▌║▌█ █║▌│█│║▌║││█║▌║ ║▌║▌║█│▌║▌█ █║▌│█│║▌║││█║▌║ ║▌║▌║█│▌║▌█ █║▌│█│║▌║││█
+
+# █▀▀ █▀▀ █▄░█ █▀▀ █▀█ ▄▀█ █░░
+# █▄█ ██▄ █░▀█ ██▄ █▀▄ █▀█ █▄▄
+
+[general]
+
+mode = waves
+framerate = 100
+autosens = 1
+;overshoot = 15
+sensitivity = 85
+
+# The number of bars (0-200). 0 sets it to auto (fill up console).
+# Bars' width and space between bars in number of characters.
+; bars = 36
+; bar_width = 2
+; bar_spacing = 1
+# bar_height is only used for output in "noritake" format
+; bar_height = 32
+
+# For SDL width and space between bars is in pixels, defaults are:
+; bar_width = 40
+; bar_spacing = 24
+
+bar_height_log  = 1     # ← escala logarítmica, equilibra todo el espectro
+
+lower_cutoff_freq = 30
+higher_cutoff_freq = 20000
+
+
+# Seconds with no input before cava goes to sleep mode. Cava will not perform FFT or drawing and
+# only check for input once per second. Cava will wake up once input is detected. 0 = disable.
+ sleep_timer = 0
+
+# █ █▄░█ █▀█ █░█ ▀█▀
+# █ █░▀█ █▀▀ █▄█ ░█░
+
+[input]
+
+# Audio capturing method. Possible methods are: 'pulse', 'alsa', 'fifo', 'sndio' or 'shmem'
+# Defaults to 'pulse', 'alsa' or 'fifo', in that order, dependent on what support cava was built with.
+
+method = pipewire
+source = auto
+
+; method = alsa
+; source = hw:Loopback,1
+
+# █▀█ █░█ ▀█▀ █▀█ █░█ ▀█▀
+# █▄█ █▄█ ░█░ █▀▀ █▄█ ░█░
+
+[output]
+
+method = noncurses
+orientation = bottom
+
+channels = mono
+mono_option = average
+; reverse = 1
+
+# sdl window size and position. -1,-1 is centered.
+; sdl_width = 1000
+; sdl_height = 500
+; sdl_x = -1
+; sdl_y= -1
+
+xaxis = frequency
+
+# █▀█ ▄▀█ ▀█▀ ▀█▀ █▀▀ █▀█ █▄░█   █▀▀ █▀█ █░░ █▀█ █▀█ █▀
+# █▀▀ █▀█ ░█░ ░█░ ██▄ █▀▄ █░▀█   █▄▄ █▄█ █▄▄ █▄█ █▀▄ ▄█
+
+[color]
+
+gradient = 1
+gradient_count = 8
+gradient_color_1 = '#d5edeb'
+gradient_color_2 = '#9fc0ea'
+gradient_color_3 = '#6488ea'
+gradient_color_4 = '#a7a9ee'
+gradient_color_5 = '#f7c3c6'
+gradient_color_6 = '#d6d1c5'
+gradient_color_7 = '#fff6d2'
+gradient_color_8 = '#819fee'
+
+# █▀ █▀▄▀█ █▀█ █▀█ ▀█▀ █░█
+# ▄█ █░▀░█ █▄█ █▄█ ░█░ █▀█
+
+[smoothing]
+
+integral = 82
+gravity = 65
+
+monstercat = 0
+waves = 1
+
+# ░█▀▀░▄▀▄░░░█▀▀░█▀▄░█▀█░█▀█░█░█
+# ░█▀▀░█\█░░░█░█░█▀▄░█▀█░█▀▀░█▀█
+# ░▀▀▀░░▀\░░░▀▀▀░▀░▀░▀░▀░▀░░░▀░▀
+
+# ── [eq] 18 bandas ───────────────────
+#  banda   rango aprox      valor
+ 1  = 2.25  # 20–30 Hz    sub profundo
+ 2  = 1.85  # 30–45 Hz    sub
+ 3  = 1.65  # 45–65 Hz    sub-grave
+ 4  = 1.44  # 65–90 Hz    grave bajo
+ 5  = 1.15  # 90–130 Hz   grave
+ 6  = 0.90  # 130–180 Hz  grave alto
+ 7  = 0.96  # 180–260 Hz  bajo-medio
+ 8  = 0.9  # 260–380 Hz  medio bajo
+ 9  = 0.98  # 380–550 Hz  medio
+10  = 1.06  # 550–800 Hz  medio
+11  = 1.15  # 800 Hz–1.2k medio alto
+12  = 1.25  # 1.2–1.8k    presencia baja
+13  = 1.32  # 1.8–2.6k    presencia
+14  = 1.25  # 2.6–3.8k    presencia alta
+15  = 1.25  # 3.8–5.5k    ataque
+16  = 1.32  # 5.5–8k      agudo bajo
+17  = 1.44  # 8–14k       agudo
+18  = 1.65  # 14–20k      aire

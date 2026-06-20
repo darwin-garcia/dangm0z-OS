@@ -1,0 +1,99 @@
+# ██╗    ██╗ █████╗ ██╗   ██╗██████╗  █████╗ ██████╗
+# ██║    ██║██╔══██╗╚██╗ ██╔╝██╔══██╗██╔══██╗██╔══██╗
+# ██║ █╗ ██║███████║ ╚████╔╝ ██████╔╝███████║██████╔╝
+# ██║███╗██║██╔══██║  ╚██╔╝  ██╔══██╗██╔══██║██╔══██╗
+# ╚███╔███╔╝██║  ██║   ██║   ██████╔╝██║  ██║██║  ██║
+#  ╚══╝╚══╝ ╚═╝  ╚═╝   ╚═╝   ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝
+#
+# cava config para waybar (custom/cava)
+# ThinkPad X1 Carbon Gen 8 — PipeWire
+# Ruta: ~/.config/cava/waybar-cava
+
+# ─── GENERAL ────────────────────────────────────────────────────────────────
+
+[general]
+
+mode = waves
+framerate = 60
+autosens = 1
+sensitivity = 85
+bars = 12
+
+bar_height_log = 1          # escala logarítmica: equilibra sub-graves y agudos
+
+lower_cutoff_freq  = 30
+higher_cutoff_freq = 20000
+
+sleep_timer = 5             # suspende tras 5s de silencio (ahorro energía)
+
+# ─── INPUT ──────────────────────────────────────────────────────────────────
+
+[input]
+
+# PipeWire nativo — mejor opción en ThinkPad X1 Carbon Gen 8
+# Evita la latencia extra de la capa pipewire-pulse
+method = pipewire
+source = auto
+
+# ─── OUTPUT ─────────────────────────────────────────────────────────────────
+
+[output]
+
+# noncurses + bar_delimiter=0 → cada frame = una línea de bloques
+# Exactamente lo que waybar "custom" module lee por stdout
+method      = noncurses
+orientation = bottom
+
+channels    = mono
+mono_option = average       # promedia L+R: más limpio en waybar
+
+bar_delimiter = 0           # sin separador → "▁▂▃▄▅▆▇█▆▄▂▁" por línea
+
+# ─── COLOR ──────────────────────────────────────────────────────────────────
+# (ignorado por el módulo custom, pero se conserva para uso standalone)
+
+[color]
+
+gradient         = 1
+gradient_count   = 8
+gradient_color_1 = '#d5edeb'
+gradient_color_2 = '#9fc0ea'
+gradient_color_3 = '#6488ea'
+gradient_color_4 = '#a7a9ee'
+gradient_color_5 = '#f7c3c6'
+gradient_color_6 = '#d6d1c5'
+gradient_color_7 = '#fff6d2'
+gradient_color_8 = '#819fee'
+
+# ─── SMOOTHING ──────────────────────────────────────────────────────────────
+
+[smoothing]
+
+integral   = 82
+gravity    = 65
+monstercat = 0
+waves      = 1
+
+# ─── EQ (18 bandas) — idéntico a tu config standalone ───────────────────────
+
+[eq]
+
+#  banda   rango aprox        valor
+ 1  = 2.25  # 20–30 Hz    sub profundo
+ 2  = 1.85  # 30–45 Hz    sub
+ 3  = 1.65  # 45–65 Hz    sub-grave
+ 4  = 1.44  # 65–90 Hz    grave bajo
+ 5  = 1.15  # 90–130 Hz   grave
+ 6  = 0.90  # 130–180 Hz  grave alto
+ 7  = 0.96  # 180–260 Hz  bajo-medio
+ 8  = 0.90  # 260–380 Hz  medio bajo
+ 9  = 0.98  # 380–550 Hz  medio
+10  = 1.06  # 550–800 Hz  medio
+11  = 1.15  # 800 Hz–1.2k medio alto
+12  = 1.25  # 1.2–1.8k    presencia baja
+13  = 1.32  # 1.8–2.6k    presencia
+14  = 1.25  # 2.6–3.8k    presencia alta
+15  = 1.25  # 3.8–5.5k    ataque
+16  = 1.32  # 5.5–8k      agudo bajo
+17  = 1.44  # 8–14k       agudo
+18  = 1.65  # 14–20k      aire
