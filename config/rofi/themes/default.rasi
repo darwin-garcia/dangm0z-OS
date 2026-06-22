@@ -1,0 +1,106 @@
+/*
+ * rofi themes - default
+ * colors - jellybeans
+ * mode - dark
+ */
+
+configuration {
+    modi: "drun";
+    display-drun: "󰀻";
+    display-run:         " Terminal";
+    display-filebrowser: " Files";
+    display-Power:       "⏻  Power";
+    drun-display-format: "{name}";
+    font: "JetBrainsMono Nerd Font 11";
+    show-icons: true;
+    icon-theme: "Papirus-dark";
+    terminal:            "kitty";
+}
+
+* {
+    bg0:    #1a1b26;
+    bg1:    #24283b;
+    bg2:    #292e42;
+    blue0:  #3d59a1;
+    blue1:  #7aa2f7;   /* inner ring  */
+    blue2:  #2ac3de;   /* outer ring  */
+    fg0:    #c0caf5;
+    fg1:    #a9b1d6;
+    fg2:    #565f89;
+    red:    #f7768e;
+    green:  #9ece6a;
+
+    background-color: transparent;
+    text-color:       @fg0;
+}
+/* ── Window — outer ring (#2ac3de) ───────────────────────── */
+window {
+    width:            840px;
+    background-color: #1a1b26A6;   /* bg0 @ 65 % opacity (A6 ≈ 0.65 × 255) */
+    border:           2px;
+    border-color:     @blue2;      /* cyan-blue outer ring */
+    border-radius:    18px;
+    padding:          3px;         /* gap between the two rings */
+}
+
+mainbox {
+    children: [ inputbar, listview ];
+    padding: 3em;
+    background-color: transparent;
+    border:           1px;
+    border-color:     @blue1;      /* purple-blue inner ring */
+    border-radius:    15px;
+    spacing: 1em;
+}
+
+inputbar {
+    children: [ prompt, entry ];
+    border-radius: @rad;
+    background-color: @alt;
+    border-radius:    10px;
+    border:           1px;
+    border-color:     @blue0;
+    padding:          0.15em 0;
+}
+
+prompt, entry, element selected {
+    vertical-align: 0.5;
+    background-color: @alt;
+}
+
+prompt {
+   padding:          0.45em 0.7em;
+}
+
+entry {
+    blink: false;
+    padding: 0 1.5% 0 0;
+    placeholder: "Search through apps";
+}
+
+listview {
+    lines:            4;
+    columns:          5;
+    cycle:            false;
+    spacing:          0.5em;
+    background-color: transparent;
+    scrollbar:        false;
+    border:           0px;
+}
+
+element {
+    orientation: vertical;
+    padding:          0.9em 0.5em;
+    border-radius:    10px;
+    background-color: #24283b55;
+    cursor:           pointer;
+}
+
+element-text, element-icon {
+    horizontal-align: 0.5;
+    background-color: inherit;
+}
+
+element-icon { size: 48px; }
+listview, element, element selected, element-text, element-icon { cursor: pointer; }
+entry { cursor: text; }
