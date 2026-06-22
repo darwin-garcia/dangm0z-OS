@@ -27,8 +27,8 @@ case "$1" in
 
     if [ "$MONITOR_COUNT" -ge 2 ]; then
       # Había segundo monitor: restaurar extendido
-      hyprctl keyword monitor "eDP-1, 2560x1440@60, 0x0, 1.25"
-      hyprctl keyword monitor "DP-4, 1920x1080@60, 1920x0, 1" # <- Ajustar la resolucion del monitor externo
+      hyprctl keyword monitor "eDP-1, 2560x1440@60, 0x0, 1.33"
+      hyprctl keyword monitor "DP-4, 1920x1080@60, 1920x0, 1.25" # <- Ajustar la resolucion del monitor externo
     else
       # Solo había pantalla del laptop
       hyprctl keyword monitor "eDP-1, preferred, auto, 1.25"
