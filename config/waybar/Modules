@@ -22,43 +22,6 @@
         "separate-outputs": true,
         "icon": true,
         "icon-size": 16,
-        /*
-        "rewrite": {
-            // Code - OSS
-            "(.*) - Code - OSS": " Code",
-            "Code - OSS": " Code",
-
-            // Chromium
-            "(.*) - Chromium": " Chromium",
-            "Chromium": " Chromium",
-
-            // Dolphin (Gestor de archivos)
-            "(.*) - Dolphin": " Dolphin",
-            "dolphin": " Dolphin",
-
-            // Kitty Terminal
-            "(.*) - kitty": " Kitty",
-            "kitty": " Kitty",
-
-            // Ghostty Terminal
-            "(.*) - ghostty": " Ghostty",
-            "ghostty": " Ghostty",
-
-            // Loupe (Visor de imágenes de GNOME)
-            "(.*) - Loupe": "   Loupe",
-            "loupe": "   Loupe",
-
-            // Celluloid (Reproductor de video)
-            "(.*) - Celluloid": "   Celluloid",
-            "celluloid": "   Celluloid",
-
-            // Mousepad (Editor de texto)
-            "(.*) - Mousepad": "   Mousepad",
-            "mousepad": "   Mousepad",
-
-            // Galculator
-            "galculator": "   Calculadora"
-            } */
     },
 
     // View Music info on Topbar
@@ -96,7 +59,8 @@
         "interval": 5,
         "max-length": 100,
         "format": "<span color='#19fc78'> </span>",
-        "format-alt": "<span color='#19fc78'> </span> {usage} %",           
+        "format-alt": "<span color='#19fc78'> </span> {usage} %",
+        "on-click-right": "kitty -e glances"           
     },
     /* ──  MEMORY ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── */
     // Memory Usage on Taskbar
@@ -166,7 +130,7 @@
         "tooltip-format-connected": "󰌢 {controller_alias}\nHost MAC: {controller_address}\n󰂰 {num_connections} connected.\n——————————————————————————————\n{device_enumerate} ",
         "tooltip-format-enumerate-connected": ":{device_alias}\nMAC:{device_address}\n",
         "tooltip-format-enumerate-connected-battery": ": {device_alias}\nMAC: {device_address}\n󰥈 {device_battery_percentage}%",
-        "on-click": "blueman-manager",
+        "on-click": "kitty --class wiremix-float -e bluetui",
     },
     /* ──   PULSEAUDIO Module  (Volume Audio Control) ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── */
     "pulseaudio#output": {
@@ -178,7 +142,7 @@
         "format-muted": "<span color='#FF0000'> </span>",
         "max-volume": 100,
         "on-click":"pactl set-sink-mute @DEFAULT_SINK@ toggle",
-        "on-click-right": "pavucontrol -t 3",
+        "on-click-right": "kitty --class wiremix-float -e wiremix --tab output",
         "format-icons": { 
             "default": [
                 "<span color='#ff0000'> </span>",
@@ -200,7 +164,7 @@
         "on-click": "pactl set-source-mute @DEFAULT_SOURCE@ toggle",
         "on-scroll-up": "pactl set-source-volume @DEFAULT_SOURCE@ +5%",
         "on-scroll-down": "pactl set-source-volume @DEFAULT_SOURCE@ -5%",
-        "on-click-right": "pavucontrol -t 4",
+        "on-click-right": "kitty --class wiremix-float -e wiremix --tab input",
     },  
     /* ── 󰢩 NETWORK Module (nmcli) ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── */
     // Network Manager and Watch Wi-Fi and LAN connection
@@ -213,8 +177,8 @@
         "tooltip-format-wifi": "󰢩 Interface: {ifname} \n—————————————————————————\n  {essid} \n󰥛 Signal: {signalStrength} % \n Frequency: {frequency}GHz \n—————————————————————————\n󰶡 {bandwidthDownBytes} - 󰶣 {bandwidthUpBytes}\n—————————————————————————\nIP: {ipaddr} \nSubmask: {netmask} \nGateway: {gwaddr}",
         "tooltip-format-ethernet": "󰢩 Interface: {ifname} \n󰈁 LAN \n—————————————————————————\n󰶡 {bandwidthDownBytes} - 󰶣 {bandwidthUpBytes}\n—————————————————————————\nIP: {ipaddr} \nSubmask: {netmask} \nGateway: {gwaddr}",
         "tooltip-format-disconnected": "󰅛 Disconnected.",
-        "on-click": "nm-connection-editor",
-            // "on-click-right": "exec nm-applet"
+        "on-click": "kitty --class impala_float -e impala",
+            // "on-click-right": "nm-connection-editor"
         "format-icons":  [
             "<span color='#ff6262'> </span>",
             "<span color='#ffe958'> </span>", 
@@ -247,7 +211,7 @@
         },
         "interval" : 5,
         "tooltip" : true,
-        "tooltip-format" : " Remain: {time}\n {power} W\n—————————————————————————\n Current Cycles: {cycles}\n󱈏 Health: {health} %",
+        "tooltip-format" : " {timeTo}\n {power} W\n—————————————————————————\n Current Cycles: {cycles}\n󱈏 Health: {health} %",
         "format": "{icon} <span color='#F1F1F1'>{capacity}%</span>",
         "format-charging": "<span color='#38ff5d'></span> <span color='#F1F1F1'>{capacity}%</span>",
         "format-plugged": "<span color='#F1F1F1'> {capacity}%</span>",

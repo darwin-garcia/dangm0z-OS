@@ -88,11 +88,12 @@
 	},
 
 	"custom/cava": {
-        "exec": "~/.config/waybar/Scripts/waybar-cava.sh",
-        "tail": true,
-        "format": "{}",
-        "restart-interval": 3,
-        "tooltip": false,
-        "on-click-right": ""
-    }
+		"exec": "~/.config/waybar/Scripts/waybar-cava.sh",
+		//"return-type": "json",
+		// "restart-interval": 1,
+		"input-delay": 3,
+		"format": "{}",
+		"tooltip": false
+
+	}
 }

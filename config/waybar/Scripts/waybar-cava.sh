@@ -1,79 +1,61 @@
 #!/usr/bin/env bash
-# ══════════════════════════════════════════════════════════════
-#  waybar-cava.sh  —  spectrum analyzer para waybar
-#  Instalar en: ~/.config/waybar/Scripts/waybar-cava.sh
-#  Permisos:    chmod +x ~/.config/waybar/Scripts/waybar-cava.sh
-#
-#  En Modules usar:
-#    "custom/cava": {
-#        "exec": "$HOME/.config/waybar/Scripts/waybar-cava.sh",
-#        "tail": true,
-#        "format": "{}",
-#        "restart-interval": 3,
-#        "tooltip": false
-#    }
-#
-#  NOTA: usar $HOME (no ~) en el campo "exec" de waybar.
-# ══════════════════════════════════════════════════════════════
 
-# ── Config temporal embebida ──────────────────────────────────
-# Se crea en /tmp y se elimina al salir (trap EXIT).
-# Toma todos los parámetros de tu config standalone excepto:
-#   · xaxis = frequency  → eliminado (añade texto, rompe waybar)
-#   · bar_delimiter = 0  → forzado   (barras sin separador)
-#   · framerate = 60     → reducido  (100 fps en waybar es excesivo)
-#   · sleep_timer = 5    → activado  (suspende en silencio)
+bars=("▁" "▂" "▃" "▄" "▅" "▆" "▇" "█")
 
-TMPCONF=$(mktemp /tmp/cava-waybar-XXXXXX.ini)
-trap 'rm -f "$TMPCONF"' EXIT
+CONFIG="$(mktemp)"
 
-cat > "$TMPCONF" << 'EOF'
+cat > "$CONFIG" <<EOF
 [general]
-mode              = waves
-framerate         = 60
-autosens          = 1
-# Reducimos la sensibilidad de 85 a 30
-sensitivity       = 30 
-bars              = 12
-bar_height_log    = 1
-lower_cutoff_freq = 30
-higher_cutoff_freq = 20000
-sleep_timer       = 5
+bars = 12
+framerate = 60
+autosens = 1
+sensitivity = 80
 
 [input]
-method = pipewire
+# pipewire | pulse | alsa
+method = pulse
 source = auto
 
 [output]
-method        = noncurses
-orientation   = bottom
-channels      = mono
-mono_option   = average
-bar_delimiter = 0
+method = raw
+raw_target = /dev/stdout
+data_format = ascii
+ascii_max_range = 7
 
 [smoothing]
-integral   = 82
-gravity    = 65
-monstercat = 0
-waves      = 1
-noise_reduction = 0.77
-
-[eq]
- 1  = 1.65
- 2  = 1.44
- 3  = 1.05
- 4  = 0.84
- 5  = 0.65
+integral = 70
 EOF
 
-# ── Esperar a PipeWire ────────────────────────────────────────
-# El X1 Carbon Gen 8 arranca waybar antes que el servidor de
-# audio. Sin este wait, cava falla silenciosamente en cold boot.
+cleanup() {
+    rm -f "$CONFIG"
+}
 
-for i in $(seq 1 20); do
-    pactl info &>/dev/null && break
-    sleep 0.5
+trap cleanup EXIT
+# Ignorar SIGPIPE a nivel del shell para que el pipeline no muera
+# cuando Waybar deja de leer (reload, reinicio, etc.)
+trap '' PIPE
+
+run_cava() {
+    stdbuf -oL cava -p "$CONFIG" 2>/dev/null |
+    while IFS= read -r line; do
+        output=""
+
+        IFS=';' read -ra vals <<< "$line"
+
+        for v in "${vals[@]}"; do
+            [[ "$v" =~ ^[0-7]$ ]] || continue
+            output+="${bars[$v]}"
+        done
+
+        # Si printf falla (pipe roto hacia Waybar), salir del subshell
+        # limpiamente para que el loop externo reinicie cava
+        printf '{"text":"%s"}\n' "$output" 2>/dev/null || exit 0
+    done
+}
+
+# Auto-restart: si cava muere (SIGPIPE, audio device cambia, suspend, etc.)
+# el módulo se recupera solo sin intervención del usuario
+while true; do
+    run_cava
+    sleep 1
 done
-
-# ── Lanzar cava ──────────────────────────────────────────────
-exec cava -p "$TMPCONF"
