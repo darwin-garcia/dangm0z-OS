@@ -41,8 +41,9 @@
 		"interval": "once",
 		"tooltip": true,
 		"tooltip-format" : "⏻ Power Options",
-    	"format": "<span color='#f7768e'>⏻</span>",		
-		"menu": "on-click",
+    	"format": "<span color='#f7768e'>⏻</span>",	
+		"on-click": "rofi -modi power:~/.config/rofi/Scripts/power.sh -show power -theme ~/.config/rofi/power.rasi",
+		"menu": "on-click-right",
     	"menu-file": "~/.config/waybar/Scripts/power_menu.xml",
 		"menu-actions": {
 			"reload": "hyprctl reload",
