@@ -1,29 +1,40 @@
 /*
  * rofi themes - default
- * colors - jellybeans
- * mode - dark
+ * colors  - Tokyo Night
+ * mode    - dark  |  Hyprland / Wayland
+ *
+ * Modes: 󰀻 Apps (drun)  |  Terminal (run)  |   Files (filebrowser)  |   Power
+ * Switch:  Ctrl+Tab   or  click a tab at the bottom-left
+ * Terminal tip: in "Terminal" mode, Shift+Enter opens command in kitty
+ * Power button: visual shortcut — bind kb-custom-1 in Hyprland to call rofi-power script
  */
 
 configuration {
-    modi: "drun";
-    display-drun: "󰀻";
+    modi:                "drun,run,filebrowser";
+    display-drun:        "󰀻 Apps";
     display-run:         " Terminal";
     display-filebrowser: " Files";
-    display-Power:       "⏻  Power";
     drun-display-format: "{name}";
-    font: "JetBrainsMono Nerd Font 11";
-    show-icons: true;
-    icon-theme: "Papirus-dark";
+    font:                "JetBrainsMono Nerd Font 11";
+    show-icons:          true;
+    icon-theme:          "Papirus-Dark";
     terminal:            "kitty";
+    sidebar-mode:        true;
+
+    filebrowser {
+        directories-first: true;
+        sorting-method:    "name";
+    }
 }
 
+/* ── Palette ──────────────────────────────────────────────── */
 * {
     bg0:    #1a1b26;
     bg1:    #24283b;
     bg2:    #292e42;
     blue0:  #3d59a1;
-    blue1:  #7aa2f7;   /* inner ring  */
-    blue2:  #2ac3de;   /* outer ring  */
+    blue1:  #7aa2f7;
+    blue2:  #2ac3de;
     fg0:    #c0caf5;
     fg1:    #a9b1d6;
     fg2:    #565f89;
@@ -33,51 +44,62 @@ configuration {
     background-color: transparent;
     text-color:       @fg0;
 }
-/* ── Window — outer ring (#2ac3de) ───────────────────────── */
+
+/* ── Window outer ring (#2ac3de) ─────────────────────────── */
 window {
     width:            840px;
-    background-color: #1a1b26A6;   /* bg0 @ 65 % opacity (A6 ≈ 0.65 × 255) */
+    background-color: #1a1b26A6;
     border:           2px;
-    border-color:     @blue2;      /* cyan-blue outer ring */
+    border-color:     @blue2;
     border-radius:    18px;
-    padding:          3px;         /* gap between the two rings */
+    padding:          3px;
 }
 
+/* ── Main box ─────────────────────────────────────────────── */
 mainbox {
-    children: [ inputbar, listview ];
-    padding: 3em;
+    children:         [ inputbar, listview, bottom-bar ];
+    padding:          3em;
     background-color: transparent;
     border:           1px;
-    border-color:     @blue1;      /* purple-blue inner ring */
+    border-color:     @blue1;
     border-radius:    15px;
-    spacing: 1em;
+    spacing:          1em;
 }
 
+header {
+    str:  "󰣇  Arch Linux  ·  Start Menu";
+    font: "JetBrainsMono Nerd Font Bold 13";
+    horizontal-align: 0.5;
+    border: 0px 0px 1px 0px;    /* separador sutil solo abajo */
+    border-color: #7aa2f733;
+}
+
+/* ── Input bar ────────────────────────────────────────────── */
 inputbar {
-    children: [ prompt, entry ];
-    border-radius: @rad;
-    background-color: @alt;
+    children:         [ prompt, entry ];
     border-radius:    10px;
+    background-color: #24283b88;
     border:           1px;
     border-color:     @blue0;
     padding:          0.15em 0;
 }
 
-prompt, entry, element selected {
-    vertical-align: 0.5;
-    background-color: @alt;
-}
-
 prompt {
-   padding:          0.45em 0.7em;
+    padding:          0.45em 0.7em;
+    background-color: transparent;
+    vertical-align:   0.5;
 }
 
 entry {
-    blink: false;
-    padding: 0 1.5% 0 0;
-    placeholder: "Search through apps";
+    blink:             false;
+    padding:           0 1.5% 0 0;
+    placeholder:       "Search apps, run commands, browse files...";
+    placeholder-color: @fg2;      /* muted — #565f89, clearly less white */
+    background-color:  transparent;
+    vertical-align:    0.5;
 }
 
+/* ── List view ────────────────────────────────────────────── */
 listview {
     lines:            4;
     columns:          5;
@@ -88,19 +110,118 @@ listview {
     border:           0px;
 }
 
+/* ── Element cards ────────────────────────────────────────── */
 element {
-    orientation: vertical;
+    orientation:      vertical;
     padding:          0.9em 0.5em;
     border-radius:    10px;
     background-color: #24283b55;
     cursor:           pointer;
+    text-color:       @fg1;
+    border:           1px;
+    border-color:     transparent;
 }
 
-element-text, element-icon {
+/*
+ * Selected state:
+ *   - solid blue fill (#3d59a1)
+ *   - bright border (#7aa2f7)
+ *   - white label — text-color: inherit propagates to element-text
+ */
+element selected {
+    background-color: @blue0;
+    border:           1px;
+    border-color:     @blue1;
+    border-radius:    10px;
+    text-color:       #ffffff;
+}
+
+/*
+ * background-color: transparent removes the extra coloured box
+ * that was creating the icon shadow artefact.
+ */
+element-icon {
+    horizontal-align:  0.5;
+    background-color:  transparent;
+    size:              48px;
+    cursor:            pointer;
+}
+
+element-text {
+    horizontal-align:  0.5;
+    background-color:  transparent;
+    text-color:        inherit;
+    cursor:            pointer;
+}
+
+/* ── Bottom bar: [Apps|Terminal|Files]  ·  spacer  ·  [Power] ─ */
+/*
+ * bottom-bar is a custom box that holds:
+ *   mode-switcher  — compact, expand:false → stays glued to the left
+ *   bar-spacer     — stretches to fill the gap
+ *   power-button   — textbox styled as a danger button on the right
+ */
+bottom-bar {
+    children:         [ mode-switcher, bar-spacer, power-button ];
+    orientation:      horizontal;
+    spacing:          0.5em;
+    background-color: transparent;
+    expand:           false;
+}
+
+/* Mode-switcher: compact width, does NOT stretch to fill the row */
+mode-switcher {
+    expand:           false;
+    background-color: transparent;
+    spacing:          0.5em;
+    orientation:      horizontal;
+}
+
+/* Inactive mode tab */
+button {
+    padding:          0.5em 1.4em;   /* horizontal padding sizes the button */
+    border-radius:    8px;
+    background-color: #24283b88;
+    text-color:       @fg2;
+    border:           1px;
+    border-color:     #7aa2f722;
+    cursor:           pointer;
     horizontal-align: 0.5;
-    background-color: inherit;
+    vertical-align:   0.5;
+    font:             "JetBrainsMono Nerd Font 11";
+    expand:           false;         /* each button fits its label */
 }
 
-element-icon { size: 48px; }
-listview, element, element selected, element-text, element-icon { cursor: pointer; }
-entry { cursor: text; }
+/* Active mode tab */
+button selected {
+    background-color: @blue0;
+    text-color:       @blue1;
+    border-color:     @blue1;
+    border:           1px;
+}
+
+/* Spacer pushes power-button to the right */
+bar-spacer {
+    expand:           true;
+    background-color: transparent;
+}
+
+/* Power button — visual only; action via kb-custom-1 or Hyprland keybind */
+power-button {
+    str:              " Power";
+    expand:           false;
+    padding:          0.5em 1.4em;
+    border-radius:    32px;
+    background-color: #f7768e12;
+    text-color:       @red;
+    border:           1px;
+    border-color:     #f7768e33;
+    cursor:           pointer;
+    vertical-align:   0.5;
+    horizontal-align: 0.5;
+    font:             "JetBrainsMono Nerd Font 11";
+}
+
+/* ── Cursor helpers ───────────────────────────────────────── */
+listview, element, button { cursor: pointer; }
+entry                     { cursor: text;    }

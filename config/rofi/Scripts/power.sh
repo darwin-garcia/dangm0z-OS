@@ -1,25 +1,25 @@
 #!/usr/bin/env bash
-# ~/.config/rofi/scripts/power.sh
+# ~/.config/rofi/Scripts/power.sh
 # ─────────────────────────────────────────────────────────────
 # Rofi script-mode power menu
 # Adjust lock command to match your locker (hyprlock / swaylock)
 # ─────────────────────────────────────────────────────────────
 
 declare -A CMD=(
-    ["  Shutdown"]="systemctl poweroff"
-    ["  Reboot"]="systemctl reboot"
-    ["  Suspend"]="systemctl suspend && hyprlock"
-    ["󰍂  Lock"]="hyprlock"
-    ["  Log Out"]="hyprctl dispatch exit"
+    [" Shutdown"]="systemctl poweroff"
+    ["󰜉 Reboot"]="systemctl reboot"
+    ["󰤄 Suspend"]="systemctl suspend && hyprlock"
+    ["󰍂 Lock"]="hyprlock"
+    ["󰍃 Log Out"]="hyprctl dispatch exit"
 )
 
 # Ordered list for display
 ORDER=(
-    "  Shutdown"
-    "  Reboot"
-    "  Suspend"
-    "󰍂  Lock"
-    "  Log Out"
+    " Shutdown"
+    "󰜉 Reboot"
+    "󰤄 Suspend"
+    "󰍂 Lock"
+    "󰍃 Log Out"
 )
 
 # ── Initial call: print options ───────────────────────────
