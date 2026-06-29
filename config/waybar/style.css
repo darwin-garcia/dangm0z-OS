@@ -439,7 +439,32 @@ window#waybar.hidden {
 #custom-keyboard.es {
   color: #e06868;
 }
+/* CUSTOM BUTTONS */
+#custom-search,
+#custom-profiles {
+    padding:       0 10px;
+    border-radius: 8px;
+    font-size:     15px;
+    transition:    background 0.2s ease;
+}
 
+#custom-search {
+    color: #7aa2f7;
+}
+
+#custom-search:hover {
+    background: #24283b;
+    color:      #2ac3de;
+}
+
+#custom-profiles {
+    color: #9ece6a;
+}
+
+#custom-profiles:hover {
+    background: #24283b;
+    color:      #c0caf5;
+}
 /* ── TOOLTIP ─────────────────────────────────────────────────────── */
 #tooltip {
   background: rgba(18, 20, 38, 0.75);

@@ -22,7 +22,7 @@
   // ░█░█░█░█░█░█░█░█░█░░░█▀▀░▀▀█
   // ░▀░▀░▀▀▀░▀▀░░▀▀▀░▀▀▀░▀▀▀░▀▀▀
 
-  "modules-left": ["custom/launcher", "hyprland/workspaces", "cpu", "memory", "disk","custom/control"],
+  "modules-left": ["custom/launcher", "hyprland/workspaces", "cpu", "memory", "disk","custom/profiles"],
   "modules-right":["network","custom/keyboard","bluetooth","pulseaudio#input","pulseaudio#output","backlight","battery","clock","custom/notifications","custom/power"],
 
   // Modules Definition
@@ -42,7 +42,7 @@
 		"tooltip": true,
 		"tooltip-format" : "⏻ Power Options",
     	"format": "<span color='#f7768e'>⏻</span>",	
-		"on-click": "rofi -modi power:~/.config/rofi/Scripts/power.sh -show power -theme ~/.config/rofi/power.rasi",
+		"on-click": "rofi -modi power:~/.config/rofi/Scripts/power.sh -show power -theme ~/.config/rofi/Custom-Menu/power.rasi",
 		"menu": "on-click-right",
     	"menu-file": "~/.config/waybar/Scripts/power_menu.xml",
 		"menu-actions": {
@@ -73,11 +73,28 @@
 		"tooltip": true
 	},
 	// ── ⚙ CONTROL ───────
+	// "on-click": ""
 	"custom/control": {
 		"format": "⚙",
 		"tooltip": true,
 		"tooltip-format" : "⚙ Settings",
-		"on-click": "eww open-many controlcenter"
+		"on-click" :  "eww open-many controlcenter"
+	},
+	// ── ⚙ SEARCH ───────
+	"custom/search": {
+		"format": "󰍉",
+		"on-click": "rofi -show drun -theme ~/.config/rofi/Custom-Menu/search.rasi",
+		"tooltip": true,
+		"tooltip-format" : "󰍉 Search..."
+	},
+	// ── ⚙ PROFILES ENERGY (ONLY LAPTOP) ───────
+	"custom/profiles": {
+		"exec": "~/.config/waybar/Scripts/profiles-label.sh",
+		"interval": 30,
+		"format": "{}",
+		"on-click": "rofi -show profiles -modes 'profiles:~/.config/rofi/Scripts/profiles.sh' -theme ~/.config/rofi/Custom-Menu/profiles.rasi",
+		"tooltip": true,
+		"tooltip-format" : "⚙ Energy Profiles."
 	},
 	// ──  UPDATES ─────────
     "custom/updates": {
