@@ -9,6 +9,10 @@
  * Power button: visual shortcut — bind kb-custom-1 in Hyprland to call rofi-power script
  */
 
+/* ─────────────────────
+█▀▀ █▀█ █▄░█ █▀▀ █ █▀▀
+█▄▄ █▄█ █░▀█ █▀  █ █▄█
+─────────────────────── */
 configuration {
     modi:                "drun,run,filebrowser";
     display-drun:        "󰀻 Apps";
@@ -20,6 +24,9 @@ configuration {
     icon-theme:          "Papirus-Dark";
     terminal:            "kitty";
     sidebar-mode:        true;
+    case-sensitive:       false;
+    matching:             "fuzzy";
+    sorting-method:       "fzf";
 
     filebrowser {
         directories-first: true;
@@ -27,7 +34,10 @@ configuration {
     }
 }
 
-/* ── Palette ──────────────────────────────────────────────── */
+/* ────────────────────────────────────────────────────
+ █▀█ ▄▀█ ▀█▀ ▀█▀ █▀▀ █▀█ █▄░█   █▀▀ █▀█ █░░ █▀█ █▀█ █▀
+ █▀▀ █▀█ ░█░ ░█░ ██▄ █▀▄ █░▀█   █▄▄ █▄█ █▄▄ █▄█ █▀▄ ▄█
+────────────────────────────────────────────────────── */
 * {
     bg0:    #1a1b26;
     bg1:    #24283b;
@@ -45,9 +55,13 @@ configuration {
     text-color:       @fg0;
 }
 
-/* ── Window outer ring (#2ac3de) ─────────────────────────── */
+/* ────────────────────────── 
+ █░█░█ █ █▄░█ █▀▄ █▀█ █░█░█
+ ▀▄▀▄▀ █ █░▀█ █▄▀ █▄█ ▀▄▀▄▀
+─────────────────────────────*/
 window {
-    width:            840px;
+    width:            820px;
+    height:           720px;
     background-color: #1a1b26A6;
     border:           2px;
     border-color:     @blue2;
@@ -55,26 +69,38 @@ window {
     padding:          3px;
 }
 
-/* ── Main box ─────────────────────────────────────────────── */
+/* ── Main box ───────────────────────────────────────────────
+ */
 mainbox {
-    children:         [ inputbar, listview, bottom-bar ];
-    padding:          3em;
+    children:         [ textbox-header, inputbar, listview, bottom-bar ];
+    padding:          1.4em;
     background-color: transparent;
     border:           1px;
     border-color:     @blue1;
     border-radius:    15px;
-    spacing:          1em;
+    spacing:          0.8em;
 }
 
-header {
-    str:  "󰣇  Arch Linux  ·  Start Menu";
-    font: "JetBrainsMono Nerd Font Bold 13";
-    horizontal-align: 0.5;
-    border: 0px 0px 1px 0px;    /* separador sutil solo abajo */
-    border-color: #7aa2f733;
+/*
+ * Header — DEBE llamarse "textbox-*" para que rofi lo trate como
+ * textbox
+ */
+textbox-header {
+    content:           "󰣇 Start Menu";
+    font:              "JetBrainsMono Nerd Font Bold 20";
+    height:            60px;
+    expand:            false;
+    horizontal-align:  0.5;
+    vertical-align:    0.5;
+    border:            0px 0px 1px 0px;    /* separador sutil solo abajo */
+    border-color:      #7aa2f733;
 }
 
-/* ── Input bar ────────────────────────────────────────────── */
+/* ─────────────────────────────────────────────
+ █ █▄░█ █▀█ █░█ ▀█▀
+ █ █░▀█ █▀▀ █▄█ ░█░
+────────────────────────────────────────────────*/
+
 inputbar {
     children:         [ prompt, entry ];
     border-radius:    10px;
@@ -99,7 +125,11 @@ entry {
     vertical-align:    0.5;
 }
 
-/* ── List view ────────────────────────────────────────────── */
+/* ───────────────────────────────────
+ █░░ █ █▀ ▀█▀  █░█ █ █▀▀ █░█░█
+ █▄▄ █ ▄█ ░█░  ▀▄▀ █ ██▄ ▀▄▀▄▀
+ ────────────────────────────────────*/
+
 listview {
     lines:            4;
     columns:          5;
@@ -110,7 +140,11 @@ listview {
     border:           0px;
 }
 
-/* ── Element cards ────────────────────────────────────────── */
+/* ─────────────────────────────────────────────── 
+█▀▀ █░░ █▀▀ █▀▄▀█ █▀▀ █▄░█ ▀█▀  █▀▀ ▄▀█ █▀█ █▀▄  
+██▄ █▄▄ ██▄ █░▀░█ ██▄ █░▀█ ░█░  █▄▄ █▀█ █▀▄ █▄▀ 
+─────────────────────────────────────────────────*/
+
 element {
     orientation:      vertical;
     padding:          0.9em 0.5em;
@@ -138,15 +172,15 @@ element selected {
 
 /*
  * background-color: transparent removes the extra coloured box
- * that was creating the icon shadow artefact.
  */
 element-icon {
     horizontal-align:  0.5;
     background-color:  transparent;
+    border:            0px;
+    margin:            0px;
     size:              48px;
     cursor:            pointer;
 }
-
 element-text {
     horizontal-align:  0.5;
     background-color:  transparent;
@@ -159,10 +193,10 @@ element-text {
  * bottom-bar is a custom box that holds:
  *   mode-switcher  — compact, expand:false → stays glued to the left
  *   bar-spacer     — stretches to fill the gap
- *   power-button   — textbox styled as a danger button on the right
+ *   button-power   — special "button" widget styled as a danger button on the right
  */
 bottom-bar {
-    children:         [ mode-switcher, bar-spacer, power-button ];
+    children:         [ mode-switcher, bar-spacer, button-exit ];
     orientation:      horizontal;
     spacing:          0.5em;
     background-color: transparent;
@@ -200,15 +234,29 @@ button selected {
     border:           1px;
 }
 
-/* Spacer pushes power-button to the right */
+/* Spacer pushes button-power to the right */
 bar-spacer {
     expand:           true;
     background-color: transparent;
 }
+button-terminal {
+    content:          " Terminal";
+    expand:           false;
+    padding:          0.5em 1.4em;
+    border-radius:    8px;
+    background-color: #24283b88;
+    text-color:       @blue1;
+    border:           1px;
+    border-color:     #7aa2f733;
+    cursor:           pointer;
+    vertical-align:   0.5;
+    horizontal-align: 0.5;
+    font:             "JetBrainsMono Nerd Font 11";
+    action:           "kb-custom-2";
+}
 
-/* Power button — visual only; action via kb-custom-1 or Hyprland keybind */
-power-button {
-    str:              " Power";
+button-exit {
+    content:          " Exit";
     expand:           false;
     padding:          0.5em 1.4em;
     border-radius:    32px;
@@ -220,8 +268,12 @@ power-button {
     vertical-align:   0.5;
     horizontal-align: 0.5;
     font:             "JetBrainsMono Nerd Font 11";
+    action:           "kb-cancel";
 }
 
+
 /* ── Cursor helpers ───────────────────────────────────────── */
-listview, element, button { cursor: pointer; }
+listview, element, button, button-power { cursor: pointer; }
 entry                     { cursor: text;    }
+
+/* by 𝓭𝓪𝓷𝓰𝓶𝓸𝔃 */
