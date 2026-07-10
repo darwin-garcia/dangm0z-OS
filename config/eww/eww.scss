@@ -1,0 +1,148 @@
+// ══════════════════════════════════════════════════════════
+//  eww.scss — Tokyo Night, coherente con Waybar/rofi/SDDM
+// ══════════════════════════════════════════════════════════
+
+$bg:        #1a1b26;
+$bg-panel:  rgba(26, 27, 38, 0.01);
+$fg:        #c0caf5;
+$comment:   #565f89;
+$blue:      #7aa2f7;
+$cyan:      #7dcfff;
+$magenta:   #bb9af7;
+$red:       #f7768e;
+$green:     #9ece6a;
+$yellow:    #e0af68;
+$orange:    #ff9e64;
+
+* {
+    font-family: "JetBrainsMono Nerd Font";
+    font-size: 9pt;
+    color: $fg;
+}
+
+.sidebar {
+    background-color: $bg-panel;
+    border-radius: 14px;
+    border: 1px solid rgba(122, 162, 247, 0);
+    padding: 18px;
+}
+
+.header {
+    .logo {
+        margin-bottom: 2px;
+    }
+    .subtitle {
+        color: $comment;
+        font-size: 8pt;
+    }
+    .uptime {
+        color: $cyan;
+        font-size: 8pt;
+    }
+}
+
+.divider {
+    background-color: rgba(122, 162, 247, 0.12);
+    min-height: 1px;
+}
+
+.section-title {
+    color: $magenta;
+    font-weight: bold;
+    font-size: 9.5pt;
+    margin-bottom: 2px;
+}
+
+.cpu-model {
+    color: $comment;
+    font-size: 8pt;
+    margin-bottom: 2px;
+}
+
+.stat-row, .bar-row {
+    .stat-icon {
+        color: $blue;
+        margin-right: 6px;
+        min-width: 16px;
+    }
+    .stat-label {
+        color: $comment;
+    }
+    .stat-value {
+        color: $fg;
+        font-weight: bold;
+    }
+}
+
+progress.bar {
+    min-height: 6px;
+    border-radius: 4px;
+}
+progress.bar > trough {
+    background-color: rgba(255, 255, 255, 0.06);
+    border-radius: 4px;
+    min-height: 6px;
+}
+progress.bar > trough > progress {
+    border-radius: 4px;
+    min-height: 6px;
+}
+.bar-cpu   > trough > progress { background-color: $cyan; }
+.bar-ram   > trough > progress { background-color: $blue; }
+.bar-swap  > trough > progress { background-color: $magenta; }
+.bar-gpu   > trough > progress { background-color: $green; }
+.bar-disk  > trough > progress { background-color: $orange; }
+
+.cpu-graph {
+    color: $cyan;
+    margin-top: 4px;
+}
+
+.spark-graph {
+    margin-top: 2px;
+}
+.spark-cpu { color: $cyan; }
+.spark-swap { color: $magenta; }
+.spark-gpu  { color: $green; }
+
+
+.ram-col { min-width: 0; }
+.net-col { min-width: 0; }
+.spark-net-down { color: $cyan; }
+.spark-net-up   { color: $orange; }
+
+
+circular-progress.circle-stat {
+    min-width: 84px;   /* antes 64px */
+    min-height: 84px;
+    color: $orange;
+    background-color: rgba(255, 255, 255, 0.06);
+}
+.circle-stat-label {
+    font-size: 11pt;
+    font-weight: bold;
+    color: $fg;
+}
+.disk-detail {
+    color: $comment;
+    font-size: 8pt;
+    margin-top: 2px;
+}
+
+.net-name {
+    color: $green;
+    margin-bottom: 2px;
+}
+
+.procs-toggle {
+    &:hover { color: $blue; }
+}
+.procs-header {
+    color: $comment;
+    font-size: 7.5pt;
+    margin-top: 2px;
+}
+.procs-row {
+    font-size: 8.5pt;   /* subido levemente, antes 8pt, ahora hay margen */
+    padding: 1px 0;
+}

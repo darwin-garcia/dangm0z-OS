@@ -1,0 +1,195 @@
+;; ═══════════════════════════════════════════════════════════════════════════════════
+;; ★ .------..------..------.  ░▒▓████████▓▒░▒▓█▓▒░░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░░▒▓█▓▒░ 
+;; ★ |E.--. ||W.--. ||W.--. |  ░▒▓█▓▒░      ░▒▓█▓▒░░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░░▒▓█▓▒░ 
+;; ★ | (\/) || :/\: || :/\: |  ░▒▓█▓▒░      ░▒▓█▓▒░░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░░▒▓█▓▒░ 
+;; ★ | :\/: || :\/: || :\/: |  ░▒▓██████▓▒░ ░▒▓█▓▒░░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░░▒▓█▓▒░ 
+;; ★ | '--'E|| '--'W|| '--'W|  ░▒▓█▓▒░      ░▒▓█▓▒░░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░░▒▓█▓▒░
+;; ★ `------'`------'`------'  ░▒▓█▓▒░      ░▒▓█▓▒░░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░░▒▓█▓▒░
+;;                              ░▒▓████████▓▒░░▒▓█████████████▓▒░ ░▒▓█████████████▓▒░
+;;                            
+;; ═══════════════════════════════════════════════════════════════════════════════════
+;;  __ _     _      _                
+;; / _(_) __| | ___| |__   __ _ _ __ 
+;; \ \| |/ _` |/ _ \ '_ \ / _` | '__|
+;; _\ \ | (_| |  __/ |_) | (_| | |   
+;; \__/_|\__,_|\___|_.__/ \__,_|_|   
+;;                                  
+;; ═══════════════════════════════════════════════════════════════════════════════════
+;; ── Fila reutilizable: icono + etiqueta + valor a la derecha ──
+(defwidget stat-row [icon label value]
+  (box :class "stat-row" :orientation "h" :space-evenly false
+    (label :class "stat-icon" :text icon)
+    (label :class "stat-label" :text label :halign "start" :hexpand true)
+    (label :class "stat-value" :text value :halign "end")))
+
+;; ── Fila con barra de progreso debajo del label ──
+(defwidget bar-row [icon label value percent barclass]
+  (box :class "bar-row" :orientation "v" :space-evenly false
+    (box :orientation "h" :space-evenly false
+      (label :class "stat-icon" :text icon)
+      (label :class "stat-label" :text label :halign "start" :hexpand true)
+      (label :class "stat-value" :text value :halign "end"))
+    (progress :class "bar ${barclass}" :value percent :height 6)))
+
+;; ── Separador ──
+(defwidget divider []
+  (box :class "divider" :height 1 :hexpand true))
+
+;; ── Gráfico de picos reutilizable (histórico de un valor 0-100) ──
+;; Nota: el widget `graph` de eww no tiene alto por defecto, así que
+;; si no le das :height explícito colapsa a 0px y no se ve nada.
+(defwidget spark-graph [value graphclass]
+  (graph :class "spark-graph ${graphclass}"
+         :value value
+         :height 34
+         :hexpand true
+         :time-range "60s"
+         :thickness 2
+         :line-style "round"
+         :dynamic false
+         :min 0
+         :max 100))
+
+;; ── Cabecera: logo + info del sistema ──
+(defwidget header []
+  (box :class "header" :orientation "v" :space-evenly false :spacing 6
+    (label :class "subtitle" :halign "start"
+           :text " ${jq(sysinfo, '.sysname')} ${jq(sysinfo, '.kernel')} ${jq(sysinfo, '.machine')}"
+           :limit-width 34)
+    (label :class "uptime" :halign "start"
+           :text " : ${jq(sysinfo, '.uptime')}")))
+
+;; ──  CPU ──
+(defwidget cpu-section []
+  (box :class "section" :orientation "v" :space-evenly false :spacing 4
+    (label :class "section-title" :halign "start" :text " CPU")
+    (label :class "cpu-model" :halign "start" :limit-width 36 :text "${jq(sysinfo, '.cpu_model')}")
+    (stat-row :icon "󰥔" :label "Clock" :value "${round(EWW_CPU.cores[0].freq, 0)} MHz")
+    (stat-row :icon "󰔏" :label "Temp" :value "${jq(sysinfo, '.cpu_temp')}°C")
+    (stat-row :icon "" :label "Use" :value "${round(EWW_CPU.avg, 0)}%")
+    (spark-graph :value {EWW_CPU.avg} :graphclass "spark-cpu")))
+
+;; ──  RAM y  Swap ──
+(defwidget ram-section []
+  (box :class "section" :orientation "v" :space-evenly false :spacing 4
+    (label :class "section-title" :halign "start" :text " Memory")
+    (box :orientation "h" :space-evenly true :spacing 10
+      (box :class "ram-col" :orientation "v" :space-evenly false :spacing 4
+        (stat-row :icon "" :label "RAM"
+                  :value "${round(EWW_RAM.used_mem / 1024 / 1024 / 1024, 1)}/${round(EWW_RAM.total_mem / 1024 / 1024 / 1024, 1)} GB")
+        (spark-graph :value {EWW_RAM.used_mem_perc} :graphclass "spark-ram"))
+      (box :class "ram-col" :orientation "v" :space-evenly false :spacing 4
+        (stat-row :icon "󰾴" :label "Swap"
+                  :value "${round((EWW_RAM.total_swap - EWW_RAM.free_swap) / 1024 / 1024 / 1024, 1)}/${round(EWW_RAM.total_swap / 1024 / 1024 / 1024, 1)} GB")
+        (spark-graph :value {EWW_RAM.total_swap > 0 ? round((EWW_RAM.total_swap - EWW_RAM.free_swap) * 100 / EWW_RAM.total_swap, 0) : 0} :graphclass "spark-swap")))))
+
+;; ── iGPU (Intel, vía sysfs) ──
+(defwidget spark-graph-auto [value graphclass]
+  (graph :class "spark-graph ${graphclass}"
+         :value value
+         :height 34
+         :hexpand true
+         :time-range "60s"
+         :thickness 2
+         :line-style "round"
+         :dynamic true))
+
+(defwidget gpu-section []
+  (box :class "section" :orientation "v" :space-evenly false :spacing 4
+    (label :class "section-title" :halign "start" :text "󰢮 GPU")
+    (stat-row :icon "󰥔" :label "Clock" :value "${replace(jq(sysinfo, '.gpu_freq'), "\"", "")}")
+    (stat-row :icon "" :label "Use"
+              :value "${jq(sysinfo, '.gpu_usage') == "null" ? "N/A" : replace(jq(sysinfo, '.gpu_usage'), "\"", "") + "%"}")
+    (spark-graph-auto :value {jq(sysinfo, '.gpu_usage') == "null" ? 0 : jq(sysinfo, '.gpu_usage')} :graphclass "spark-gpu")
+  ))
+
+;; ──  Disco ──
+;; ── widget reutilizable: anillo + porcentaje centrado ──
+(defwidget circle-stat [value]
+  (overlay
+    (circular-progress :value value :class "circle-stat" :thickness 6 :start-at 75 :clockwise true)
+    (label :class "circle-stat-label" :text "${round(value, 0)}%")))
+
+;; ── 󰋊 Disco ──
+(defwidget disk-section []
+  (box :class "section" :orientation "v" :space-evenly false :spacing 4
+    (label :class "section-title" :halign "start" :text "󰋊 Storage")
+    (box :orientation "h" :halign "center" :space-evenly false
+      (circle-stat :value {EWW_DISK["/"].used_perc}))
+    (label :class "disk-detail" :halign "center"
+           :text "${round(EWW_DISK["/"].used / 1024 / 1024 / 1024, 0)} GB / ${round(EWW_DISK["/"].total / 1024 / 1024 / 1024, 0)} GB")))
+
+;; ── 󰢩 Red ──
+;; ── gráfico de red con autoescala (throughput no es 0-100) ──
+(defwidget net-graph [value]
+  (graph :class "spark-graph spark-net"
+         :value value
+         :height 34
+         :hexpand true
+         :time-range "60s"
+         :thickness 2
+         :line-style "round"
+         :dynamic true))
+
+;; ── 󰛳 Red ──
+;; ── gráfico de red con autoescala (throughput no es 0-100) ──
+(defwidget net-graph [value graphclass]
+  (graph :class "spark-graph ${graphclass}"
+         :value value
+         :height 34
+         :hexpand true
+         :time-range "60s"
+         :thickness 2
+         :line-style "round"
+         :dynamic true))
+
+;; ── 󰛳 Red ──
+(defwidget net-section []
+  (box :class "section" :orientation "v" :space-evenly false :spacing 4
+    (label :class "section-title" :halign "start"
+           :text "${jq(sysinfo,'.net_type') == "wifi" ? "󰤨" : (jq(sysinfo,'.net_type') == "ethernet" ? "󰈀" : "󰤭")} Network")
+    (label :class "net-name" :halign "start" :text "${jq(sysinfo, '.net_label')}")
+    (box :orientation "h" :space-evenly true :spacing 10
+      (box :class "net-col" :orientation "v" :space-evenly false :spacing 4
+        (stat-row :icon "󰇚" :label "Down" :value "${replace(jq(sysinfo, '.net_down'), "\"", "")}")
+        (net-graph :value {jq(sysinfo, '.net_down_raw') == "null" ? 0 : jq(sysinfo, '.net_down_raw')} :graphclass "spark-net-down"))
+      (box :class "net-col" :orientation "v" :space-evenly false :spacing 4
+        (stat-row :icon "󰕒" :label "Up" :value "${replace(jq(sysinfo, '.net_up'), "\"", "")}")
+        (net-graph :value {jq(sysinfo, '.net_up_raw') == "null" ? 0 : jq(sysinfo, '.net_up_raw')} :graphclass "spark-net-up")))))
+
+;; ── 󰀻 Top procesos (colapsable) ──
+(defwidget procs-section []
+  (box :class "section" :orientation "v" :space-evenly false :spacing 2
+    (eventbox :onclick "eww update procs_expanded=${!procs_expanded}"
+      (box :class "section-title procs-toggle" :orientation "h" :space-evenly false
+        (label :halign "start" :hexpand true :text "󰀻 Process")
+        (label :text "${procs_expanded ? "" : ""}")))
+    (revealer :reveal procs_expanded :transition "slidedown" :duration "200ms"
+      (box :class "procs-list" :orientation "v" :space-evenly false
+        (label :class "procs-header" :halign "start"
+               :text "NAME              PID    CPU%    MEM%")
+        (label :class "procs-row" :halign "start" :text top1)
+        (label :class "procs-row" :halign "start" :text top2)
+        (label :class "procs-row" :halign "start" :text top3)
+        (label :class "procs-row" :halign "start" :text top4)
+        (label :class "procs-row" :halign "start" :text top5)
+        (label :class "procs-row" :halign "start" :text top6)
+        (label :class "procs-row" :halign "start" :text top7)))))
+
+;; ── Panel completo ──
+(defwidget sidebar []
+  (scroll :vscroll true :hscroll false
+    (box :class "sidebar" :orientation "v" :space-evenly false :spacing 10
+      (header)
+      (divider)
+      (cpu-section)
+      (divider)
+      (ram-section)
+      (divider)
+      (gpu-section)
+      (divider)
+      (disk-section)
+      (divider)
+      (net-section)
+      (divider)
+      (procs-section))))

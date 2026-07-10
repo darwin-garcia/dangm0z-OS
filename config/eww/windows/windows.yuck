@@ -1,0 +1,28 @@
+;; ═══════════════════════════════════════════════════════════════════════════════════
+;; ★ .------..------..------.  ░▒▓████████▓▒░▒▓█▓▒░░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░░▒▓█▓▒░ 
+;; ★ |E.--. ||W.--. ||W.--. |  ░▒▓█▓▒░      ░▒▓█▓▒░░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░░▒▓█▓▒░ 
+;; ★ | (\/) || :/\: || :/\: |  ░▒▓█▓▒░      ░▒▓█▓▒░░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░░▒▓█▓▒░ 
+;; ★ | :\/: || :\/: || :\/: |  ░▒▓██████▓▒░ ░▒▓█▓▒░░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░░▒▓█▓▒░ 
+;; ★ | '--'E|| '--'W|| '--'W|  ░▒▓█▓▒░      ░▒▓█▓▒░░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░░▒▓█▓▒░
+;; ★ `------'`------'`------'  ░▒▓█▓▒░      ░▒▓█▓▒░░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░░▒▓█▓▒░
+;;                              ░▒▓████████▓▒░░▒▓█████████████▓▒░ ░▒▓█████████████▓▒░
+;;                            
+;; ═══════════════════════════════════════════════════════════════════════════════════
+;; ══════════════════════════════════════════════════════════
+;;  windows/windows.yuck — ventana layer-shell del sidebar
+;; ══════════════════════════════════════════════════════════
+;; :stacking "bg"  -> se queda detrás de las ventanas normales,
+;;                    igual que el conky original (own_window_hints
+;;                    "below,sticky,skip_taskbar,skip_pager").
+;; :exclusive false -> no reserva espacio, las ventanas de Hyprland
+;;                    pueden ocupar el área por debajo.
+;; :namespace       -> nombre fijo para poder apuntarle con
+;;                    `layerrule` desde hyprland.conf.
+
+(defwindow sidebar
+  :monitor 0
+  :namespace "eww-sidebar"
+  :stacking "bg"
+  :exclusive false
+  :focusable false
+  :geometry (geometry :x "20px" :y "20px" :width "440px" :height "96%" :anchor "top right") (sidebar))
