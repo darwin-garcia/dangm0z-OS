@@ -2,32 +2,107 @@
 # ══════════════════════════════════════════════════════════
 #  sysinfo.sh — deflisten source para el sidebar de eww
 # ══════════════════════════════════════════════════════════
-# Imprime UN objeto JSON por línea, cada 2s, con todo lo que
-# las magic vars de eww (EWW_CPU, EWW_RAM, EWW_DISK...) no
-# traen: modelo de CPU, temperatura, uptime, red e iGPU.
-#
-# Un solo script para todo esto -> menos archivos sueltos.
 
 set -o pipefail
 
-# --- Datos estáticos: se calculan una sola vez, fuera del loop ---
+# --- Datos estáticos del Sistema ---
 SYSNAME=$(uname -s)
 KERNEL=$(uname -r)
 MACHINE=$(uname -m)
 CPU_MODEL=$(grep -m1 'model name' /proc/cpuinfo | sed -E 's/model name\s*:\s*//')
+DISTRO=$(. /etc/os-release 2>/dev/null && echo "$PRETTY_NAME")
+[ -z "$DISTRO" ] && DISTRO="$SYSNAME"
 
-# Interfaz de red activa (la de la ruta por defecto)
+CPU_MODEL_SHORT=$(echo "$CPU_MODEL" | sed -E \
+    -e 's/\(R\)//g' -e 's/\(TM\)//g' -e 's/ CPU\b//' \
+    -e 's/@ *[0-9.]+GHz//' -e 's/ +/ /g' -e 's/^ +| +$//g')
+[ -z "$CPU_MODEL_SHORT" ] && CPU_MODEL_SHORT="N/A"
+
+# --- Detección del Tipo de Kernel Linux ---
+KERNEL_TYPE="Vanilla"
+if [[ "$KERNEL" =~ -lts ]]; then
+    KERNEL_TYPE="LTS"
+elif [[ "$KERNEL" =~ -zen ]]; then
+    KERNEL_TYPE="Zen"
+elif [[ "$KERNEL" =~ -hardened ]]; then
+    KERNEL_TYPE="Hardened"
+elif [[ "$KERNEL" =~ -rt ]]; then
+    KERNEL_TYPE="Real-Time"
+elif [[ "$KERNEL" =~ -cachyos ]]; then
+    KERNEL_TYPE="CachyOS"
+elif [[ "$KERNEL" =~ -xanmod ]]; then
+    KERNEL_TYPE="XanMod"
+elif [[ "$KERNEL" =~ -arch ]]; then
+    KERNEL_TYPE="Arch"
+fi
+
+# --- Modelo CORTO y limpio de GPU ---
+GPU_MODEL=$(lspci -vnn 2>/dev/null | grep -i -E 'vga|3d|display' | head -n 1 | sed -E \
+    -e 's/.*: //; s/ \[.*//; s/ \(rev .*\)//' \
+    -e 's/Corporation //i; s/Integrated Graphics Controller//i' \
+    -e 's/NVIDIA GeForce /NVIDIA /i; s/Advanced Micro Devices, Inc. \[AMD\/ATI\] //i' \
+    -e 's/ +/ /g; s/^ +| +$//g')
+[ -z "$GPU_MODEL" ] && GPU_MODEL="Intel UHD Graphics"
+
+# --- RAM: Extracción exacta para ThinkPad X1 Carbon (ej. LPDDR3 2133MHz) ---
+MEM_TYPE="Unknown"
+MEM_SPEED="Unknown"
+
+if command -v dmidecode >/dev/null; then
+
+    DMI=$(sudo -n dmidecode -t memory 2>/dev/null)
+
+    MEM_TYPE=$(
+        echo "$DMI" |
+        awk -F': ' '/Type:/ && $2 !~ /Unknown|Other|None/ {print $2; exit}'
+    )
+
+    MEM_SPEED=$(
+        echo "$DMI" |
+        awk -F': ' '/Configured Memory Speed:/ {print $2; exit}'
+    )
+
+    if [ -z "$MEM_SPEED" ]; then
+        MEM_SPEED=$(
+            echo "$DMI" |
+            awk -F': ' '/Speed:/ && $2 !~ /Unknown/ {print $2; exit}'
+        )
+    fi
+
+    MEM_INFO="${MEM_TYPE} ${MEM_SPEED}"
+fi
+
+# --- Disco físico que contiene la raíz (/) ---
+DISK_MODEL="N/A"
+DISK_FS="N/A"
+DISK_PARTITION="N/A"
+ROOT_SRC_RAW=$(findmnt -no SOURCE / 2>/dev/null)
+DISK_FS=$(findmnt -no FSTYPE / 2>/dev/null)
+[ -z "$DISK_FS" ] && DISK_FS="N/A"
+
+ROOT_SRC=$(echo "$ROOT_SRC_RAW" | sed -E 's/\[.*\]//')
+ROOT_SUBVOL=$(echo "$ROOT_SRC_RAW" | grep -oP '(?<=\[/)[^]]*(?=\])')
+if [ -n "$ROOT_SUBVOL" ]; then
+    DISK_PARTITION="${ROOT_SRC} (@${ROOT_SUBVOL#@})"
+else
+    DISK_PARTITION="$ROOT_SRC_RAW"
+fi
+[ -z "$DISK_PARTITION" ] && DISK_PARTITION="N/A"
+
+if [ -n "$ROOT_SRC_RAW" ]; then
+    DISK_MODEL=$(lsblk -sno MODEL "$ROOT_SRC_RAW" 2>/dev/null | grep -v -E '^$|N/A' | tail -n 1 | sed -E 's/^ +| +$//g')
+fi
+[ -z "$DISK_MODEL" ] && DISK_MODEL="NVMe SSD"
+
 get_iface() {
     ip route get 1.1.1.1 2>/dev/null | awk '/dev/ {for(i=1;i<=NF;i++) if($i=="dev") print $(i+1); exit}'
 }
 
-# Lee bytes rx/tx de una interfaz (0 si no existe)
 read_bytes() {
     local iface="$1" dir="$2"
     cat "/sys/class/net/${iface}/statistics/${dir}_bytes" 2>/dev/null || echo 0
 }
 
-# Formatea bytes/seg a algo legible (KB/s o MB/s)
 human_speed() {
     local bytes="$1"
     awk -v b="$bytes" 'BEGIN {
@@ -36,15 +111,45 @@ human_speed() {
     }'
 }
 
-IFACE=$(get_iface)
-[ -z "$IFACE" ] && IFACE="lo"
-PREV_RX=$(read_bytes "$IFACE" rx)
-PREV_TX=$(read_bytes "$IFACE" tx)
+resolve_nic_name() {
+    local iface="$1" devpath name vendor device pci_id
+    devpath=$(readlink -f "/sys/class/net/${iface}/device" 2>/dev/null)
+    [ -z "$devpath" ] && { echo "N/A"; return; }
 
-# --- Localizar la tarjeta i915 y sus rutas de sysfs (una sola vez) ---
-# El kernel expone dos ABIs según la versión: la vieja en la raíz de
-# card*/ y la nueva bajo card*/gt/gt0/. Probamos ambas y nos quedamos
-# con la primera que exista.
+    if command -v lspci >/dev/null 2>&1; then
+        if [ -f "$devpath/vendor" ] && [ -f "$devpath/device" ]; then
+            vendor=$(cat "$devpath/vendor" 2>/dev/null | sed 's/^0x//')
+            device=$(cat "$devpath/device" 2>/dev/null | sed 's/^0x//')
+            name=$(lspci -d "${vendor}:${device}" 2>/dev/null | head -n 1 | sed -E 's/^[0-9a-f:.]+ [^:]+: //; s/ \(rev [0-9a-f]+\)$//; s/\[[^]]*\]//g; s/ +/ /g' | xargs)
+        fi
+        if [ -z "$name" ]; then
+            pci_id=$(basename "$devpath")
+            name=$(lspci -s "${pci_id#*:}" 2>/dev/null | head -n 1 | sed -E 's/^[0-9a-f:.]+ [^:]+: //; s/ \(rev [0-9a-f]+\)$//; s/\[[^]]*\]//g; s/ +/ /g' | xargs)
+        fi
+    fi
+
+    if [ -z "$name" ] && command -v lsusb >/dev/null 2>&1; then
+        local d="$devpath"
+        while [ "$d" != "/" ] && [ "$d" != "/sys" ] && [ -n "$d" ]; do
+            if [ -f "$d/idVendor" ] && [ -f "$d/idProduct" ]; then
+                vendor=$(cat "$d/idVendor" 2>/dev/null)
+                device=$(cat "$d/idProduct" 2>/dev/null)
+                name=$(lsusb -d "${vendor}:${device}" 2>/dev/null | head -n 1 | sed -E 's/^.*ID [0-9a-f]{4}:[0-9a-f]{4} //; s/ *\(.*//' | xargs)
+                break
+            fi
+            d=$(dirname "$d")
+        done
+    fi
+    [ -z "$name" ] && name="Intel Wi-Fi 6 AX201"
+    echo "$name"
+}
+
+IFACE=""
+NET_TYPE="disconnected"
+NIC_NAME="N/A"
+PREV_RX=0
+PREV_TX=0
+
 GPU_CARD=""
 for c in /sys/class/drm/card*/; do
     [ -f "${c}gt_cur_freq_mhz" ] || [ -f "${c}gt/gt0/rps_cur_freq_mhz" ] || continue
@@ -65,9 +170,6 @@ if [ -n "$GPU_CARD" ]; then
     fi
 fi
 
-# i915 NO expone "gpu_busy_percent" (eso es exclusivo de amdgpu). El
-# porcentaje de uso real se calcula comparando cuánto tiempo pasó la
-# GPU en rc6 (idle) contra el tiempo total transcurrido.
 PREV_RC6=0
 PREV_RC6_TS=0
 if [ -n "$GPU_RC6_PATH" ] && [ -f "$GPU_RC6_PATH" ]; then
@@ -75,61 +177,51 @@ if [ -n "$GPU_RC6_PATH" ] && [ -f "$GPU_RC6_PATH" ]; then
     PREV_RC6_TS=$(date +%s%3N)
 fi
 
-# --- iGPU Intel: % de uso vía delta de rc6_residency_ms ---
-# rc6_residency_ms = tiempo acumulado que la GPU pasó en estado idle (RC6).
-# Uso% = 100 - (delta_rc6 / delta_tiempo_real) * 100
-RC6_PATH=$(find /sys/class/drm/card0 -maxdepth 3 -iname "rc6_residency_ms" 2>/dev/null | head -1)
-
-if [[ -n "$RC6_PATH" && -r "$RC6_PATH" ]]; then
-    now_ms=$(date +%s%3N)
-    rc6_now=$(cat "$RC6_PATH")
-    # ... resto del bloque delta igual que antes
-else
-    gpu_usage="null"
-fi
-
-IFACE=$(ip route get 1.1.1.1 2>/dev/null | awk '{for(i=1;i<=NF;i++) if ($i=="dev") print $(i+1)}')
-
-if [[ -z "$IFACE" ]]; then
-    net_type="disconnected"
-elif [[ "$IFACE" == wl* ]]; then
-    net_type="wifi"
-elif [[ "$IFACE" == en* || "$IFACE" == eth* ]]; then
-    net_type="ethernet"
-else
-    net_type="unknown"
-fi
-
 while true; do
     sleep 2
 
     UPTIME=$(uptime -p 2>/dev/null | sed 's/^up //')
-
-    # Temperatura: intenta coretemp (Intel) y cae a lo primero que encuentre `sensors`
-    CPU_TEMP=$(sensors 2>/dev/null | awk '
-        /Package id 0:|Tctl:|Tdie:/ { gsub(/[+°C]/,"",$4); print $4; exit }
-    ')
+    CPU_TEMP=$(sensors 2>/dev/null | awk '/Package id 0:|Tctl:|Tdie:/ { gsub(/[+°C]/,"",$4); print $4; exit }')
     [ -z "$CPU_TEMP" ] && CPU_TEMP="N/A"
 
-    # Wifi / cable
-    ESSID=$(iwgetid -r 2>/dev/null)
-    if [ -n "$ESSID" ]; then
-        NET_LABEL="  ${ESSID}"
+    CUR_IFACE=$(get_iface)
+    [ -z "$CUR_IFACE" ] && CUR_IFACE="lo"
+
+    if [[ "$CUR_IFACE" == "lo" ]]; then
+        NET_TYPE="disconnected"
+    elif [[ "$CUR_IFACE" == wl* ]]; then
+        NET_TYPE="wifi"
+    elif [[ "$CUR_IFACE" == en* || "$CUR_IFACE" == eth* ]]; then
+        NET_TYPE="ethernet"
     else
-        NET_LABEL="󰈀  Cable"
+        NET_TYPE="unknown"
     fi
 
-    # Velocidad de red (delta de bytes / 2s)
+    if [ "$CUR_IFACE" != "$IFACE" ]; then
+        IFACE="$CUR_IFACE"
+        PREV_RX=$(read_bytes "$IFACE" rx)
+        PREV_TX=$(read_bytes "$IFACE" tx)
+        NIC_NAME=$(resolve_nic_name "$IFACE")
+    fi
+
+    ESSID=$(iwgetid -r 2>/dev/null)
+    if [ -n "$ESSID" ]; then
+        NET_LABEL="󰤨 ${ESSID}"
+    else
+        NET_LABEL="󰈁 Connected"
+    fi
+
     CUR_RX=$(read_bytes "$IFACE" rx)
     CUR_TX=$(read_bytes "$IFACE" tx)
     DOWN_BPS=$(( (CUR_RX - PREV_RX) / 2 ))
     UP_BPS=$(( (CUR_TX - PREV_TX) / 2 ))
     PREV_RX=$CUR_RX
     PREV_TX=$CUR_TX
+    [ "$DOWN_BPS" -lt 0 ] && DOWN_BPS=0
+    [ "$UP_BPS" -lt 0 ] && UP_BPS=0
     NET_DOWN=$(human_speed "$DOWN_BPS")
     NET_UP=$(human_speed "$UP_BPS")
 
-    # iGPU Intel (i915) vía sysfs, sin dependencias extra
     if [ -n "$GPU_FREQ_PATH" ] && [ -f "$GPU_FREQ_PATH" ]; then
         GPU_FREQ="$(cat "$GPU_FREQ_PATH") MHz"
     else
@@ -157,22 +249,35 @@ while true; do
         GPU_USAGE="0"
     fi
 
-    # jq -Rn arma el JSON escapando todo correctamente (evita romper
-    # el parseo si algún campo trae comillas o caracteres raros)
+    # Agregamos kernel_type al objeto JSON saliente
     jq -Rn -c --arg sysname "$SYSNAME" \
            --arg kernel "$KERNEL" \
+           --arg kernel_type "$KERNEL_TYPE" \
            --arg machine "$MACHINE" \
+           --arg distro "$DISTRO" \
            --arg cpu_model "$CPU_MODEL" \
+           --arg cpu_model_short "$CPU_MODEL_SHORT" \
            --arg cpu_temp "$CPU_TEMP" \
+           --arg mem_info "$MEM_INFO" \
+           --arg gpu_model "$GPU_MODEL" \
+           --arg disk_model "$DISK_MODEL" \
+           --arg disk_fs "$DISK_FS" \
+           --arg disk_partition "$DISK_PARTITION" \
            --arg uptime "$UPTIME" \
            --arg iface "$IFACE" \
+           --arg net_type "$NET_TYPE" \
+           --arg nic_name "$NIC_NAME" \
            --arg net_label "$NET_LABEL" \
            --arg net_up "$NET_UP" \
            --arg net_down "$NET_DOWN" \
+           --argjson net_down_raw "$DOWN_BPS" \
+           --argjson net_up_raw "$UP_BPS" \
            --arg gpu_freq "$GPU_FREQ" \
            --arg gpu_usage "$GPU_USAGE" \
-           '{sysname:$sysname, kernel:$kernel, machine:$machine, cpu_model:$cpu_model,
-             cpu_temp:$cpu_temp, uptime:$uptime, iface:$iface, net_label:$net_label,
-             net_up:$net_up, net_down:$net_down, gpu_freq:$gpu_freq,
-             gpu_usage:$gpu_usage}'
+           '{sysname:$sysname, kernel:$kernel, kernel_type:$kernel_type, machine:$machine, distro:$distro,
+             cpu_model:$cpu_model, cpu_model_short:$cpu_model_short, cpu_temp:$cpu_temp,
+             mem_info:$mem_info, gpu_model:$gpu_model, disk_model:$disk_model, disk_fs:$disk_fs, 
+             disk_partition:$disk_partition, uptime:$uptime, iface:$iface, net_type:$net_type, 
+             nic_name:$nic_name, net_label:$net_label, net_up:$net_up, net_down:$net_down, 
+             net_down_raw:$net_down_raw, net_up_raw:$net_up_raw, gpu_freq:$gpu_freq, gpu_usage:$gpu_usage}'
 done

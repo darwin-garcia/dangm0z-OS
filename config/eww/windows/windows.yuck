@@ -25,4 +25,4 @@
   :stacking "bg"
   :exclusive false
   :focusable false
-  :geometry (geometry :x "20px" :y "20px" :width "440px" :height "96%" :anchor "top right") (sidebar))
+  :geometry (geometry :x "20px" :y "20px" :width "480px" :height "98%" :anchor "top right") (sidebar))
