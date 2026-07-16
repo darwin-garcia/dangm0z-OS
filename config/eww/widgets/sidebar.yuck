@@ -63,10 +63,10 @@
     (label :class "distro-name" :halign "start"
            :text "${jq(sysinfo, '.distro') == "null" ? jq(sysinfo, '.sysname') : replace(jq(sysinfo, '.distro'), "\"", "")}")
     (label :class "subtitle" :halign "start"
-           :text " ${jq(sysinfo, '.sysname')} (${jq(sysinfo, '.kernel_type')}) v${jq(sysinfo, '.kernel')} ${jq(sysinfo, '.machine')}"
+           :text " (${replace(jq(sysinfo, '.kernel_type'), "\"", "")}) v${replace(jq(sysinfo, '.kernel'), "\"", "")} ${replace(jq(sysinfo, '.machine'), "\"", "")}"
            :limit-width 48)
     (label :class "uptime" :halign "start"
-           :text " : ${jq(sysinfo, '.uptime')}")))
+           :text " : ${replace(jq(sysinfo, '.uptime'), "\"", "")}")))
 
 ;; ──  CPU ──
 (defwidget cpu-section []
@@ -74,7 +74,7 @@
     (section-title-row :icon "" :title "CPU"
                        :detail "${jq(sysinfo, '.cpu_model_short') == "null" ? "" : replace(jq(sysinfo, '.cpu_model_short'), "\"", "")}")
     (stat-row :icon "󰥔" :label "Clock" :value "${round(EWW_CPU.cores[0].freq, 0)} MHz")
-    (stat-row :icon "󰔏" :label "Temp" :value "${jq(sysinfo, '.cpu_temp')}°C")
+    (stat-row :icon "󰔏" :label "Temp" :value "${replace(jq(sysinfo, '.cpu_temp'), "\"", "")}°C")
     (stat-row :icon "" :label "Use" :value "${round(EWW_CPU.avg, 0)}%")
     (spark-graph :value {EWW_CPU.avg} :graphclass "spark-cpu")))
 
@@ -87,12 +87,12 @@
       (box :class "ram-col" :orientation "v" :space-evenly false :spacing 2
         (stat-row :icon "" :label "RAM"
                   :value "${round(EWW_RAM.used_mem / 1024 / 1024 / 1024, 1)}/${round(EWW_RAM.total_mem / 1024 / 1024 / 1024, 1)} GB")
-        (label :class "stat-subval" :halign "end" :text "${round(EWW_RAM.used_mem_perc, 0)}%")
+        (stat-row :icon "" :label "Use" :value "${round(EWW_RAM.used_mem_perc, 0)}%")
         (spark-graph :value {EWW_RAM.used_mem_perc} :graphclass "spark-ram"))
       (box :class "ram-col" :orientation "v" :space-evenly false :spacing 2
         (stat-row :icon "󰾴" :label "Swap"
                   :value "${round((EWW_RAM.total_swap - EWW_RAM.free_swap) / 1024 / 1024 / 1024, 1)}/${round(EWW_RAM.total_swap / 1024 / 1024 / 1024, 1)} GB")
-        (label :class "stat-subval" :halign "end" :text "${EWW_RAM.total_swap > 0 ? round((EWW_RAM.total_swap - EWW_RAM.free_swap) * 100 / EWW_RAM.total_swap, 0) : 0}%")
+        (stat-row :icon "" :label "Use" :value "${EWW_RAM.total_swap > 0 ? round((EWW_RAM.total_swap - EWW_RAM.free_swap) * 100 / EWW_RAM.total_swap, 0) : 0}%")
         (spark-graph :value {EWW_RAM.total_swap > 0 ? round((EWW_RAM.total_swap - EWW_RAM.free_swap) * 100 / EWW_RAM.total_swap, 0) : 0} :graphclass "spark-swap")))))
 
 ;; ── iGPU (Intel, vía sysfs) ──
@@ -167,7 +167,7 @@
              :text "${jq(sysinfo,'.net_type') == "wifi" ? "󰤨" : (jq(sysinfo,'.net_type') == "ethernet" ? "󰈀" : "󰛳")} Network")
       (label :class "section-title-detail" :halign "start" :valign "end" :hexpand true :limit-width 26
              :text "${jq(sysinfo, '.nic_name') == "null" ? "" : replace(jq(sysinfo, '.nic_name'), "\"", "")}"))
-    (label :class "net-name" :halign "start" :text "${jq(sysinfo, '.net_label')}")
+    (label :class "net-name" :halign "start" :text "${replace(jq(sysinfo, '.net_label'), "\"", "")}")
     (box :orientation "h" :space-evenly true :spacing 10
       (box :class "net-col" :orientation "v" :space-evenly false :spacing 4
         (stat-row :icon "󰇚" :label "Downstream" :value "${replace(jq(sysinfo, '.net_down'), "\"", "")}")
@@ -184,16 +184,16 @@
         (label :halign "start" :hexpand true :text "󰀻 Process")
         (label :text "${procs_expanded ? "" : ""}")))
     (revealer :reveal procs_expanded :transition "slidedown" :duration "300ms"
-      (box :class "procs-list" :orientation "v" :space-evenly false :spacing 2 :hexpand true
-        (label :class "procs-header" :halign "fill" :hexpand true 
+      (box :class "procs-list" :orientation "v" :space-evenly false :spacing 2 :hexpand true :halign "fill"
+        (label :class "procs-header" :halign "start" :hexpand true :xalign 0
                :text "NAME               PID     CPU%     MEM%")
-        (label :class "procs-row" :halign "fill" :hexpand true :text top1)
-        (label :class "procs-row" :halign "fill" :hexpand true :text top2)
-        (label :class "procs-row" :halign "fill" :hexpand true :text top3)
-        (label :class "procs-row" :halign "fill" :hexpand true :text top4)
-        (label :class "procs-row" :halign "fill" :hexpand true :text top5)
-        (label :class "procs-row" :halign "fill" :hexpand true :text top6)
-        (label :class "procs-row" :halign "fill" :hexpand true :text top7)))))
+        (label :class "procs-row" :halign "start" :hexpand true :xalign 0 :text top1)
+        (label :class "procs-row" :halign "start" :hexpand true :xalign 0 :text top2)
+        (label :class "procs-row" :halign "start" :hexpand true :xalign 0 :text top3)
+        (label :class "procs-row" :halign "start" :hexpand true :xalign 0 :text top4)
+        (label :class "procs-row" :halign "start" :hexpand true :xalign 0 :text top5)
+        (label :class "procs-row" :halign "start" :hexpand true :xalign 0 :text top6)
+        (label :class "procs-row" :halign "start" :hexpand true :xalign 0 :text top7)))))
 
 ;; ── Full Panel (Section) ──
 (defwidget sidebar []

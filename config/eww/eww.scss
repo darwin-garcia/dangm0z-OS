@@ -141,6 +141,9 @@ circular-progress.circle-stat {
 .procs-toggle {
     &:hover { color: $blue; }
 }
+.procs-header, .procs-row {
+    font-family: "JetBrainsMono Nerd Font";
+}
 .procs-header {
     color: $comment;
     font-size: 7.5pt;
@@ -148,9 +151,24 @@ circular-progress.circle-stat {
     margin-bottom: 1px;
 }
 .procs-row {
-    font-size: 7pt;   /* subido levemente, antes 8pt, ahora hay margen */
-    margin: 0;
+    font-size: 7.5pt;
     padding: 1px 0;
-    letter-spacing: 0;
-    
+}
+.procs-col-name {
+    color: $fg;
+}
+.procs-header .procs-col-name {
+    color: $comment;
+}
+.procs-col-pid {
+    min-width: 46px;
+    color: $comment;
+}
+.procs-col-cpu {
+    min-width: 46px;
+    color: $cyan;
+}
+.procs-col-mem {
+    min-width: 46px;
+    color: $magenta;
 }

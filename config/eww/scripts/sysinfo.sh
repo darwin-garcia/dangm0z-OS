@@ -45,31 +45,55 @@ GPU_MODEL=$(lspci -vnn 2>/dev/null | grep -i -E 'vga|3d|display' | head -n 1 | s
 [ -z "$GPU_MODEL" ] && GPU_MODEL="Intel UHD Graphics"
 
 # --- RAM: Extracción exacta para ThinkPad X1 Carbon (ej. LPDDR3 2133MHz) ---
-MEM_TYPE="Unknown"
-MEM_SPEED="Unknown"
+# NOTA: en portátiles con RAM soldada (como el X1C8) dmidecode reporta
+# "Form Factor: Row Of Chips" en vez de "SODIMM", pero el campo "Type:"
+# (LPDDR3, LPDDR4, etc.) y "Configured Memory Speed:" se leen igual.
+MEM_TYPE=""
+MEM_SPEED=""
+MEM_PERM_ERROR=0
 
-if command -v dmidecode >/dev/null; then
+if command -v dmidecode >/dev/null 2>&1; then
 
-    DMI=$(sudo -n dmidecode -t memory 2>/dev/null)
-
-    MEM_TYPE=$(
-        echo "$DMI" |
-        awk -F': ' '/Type:/ && $2 !~ /Unknown|Other|None/ {print $2; exit}'
-    )
-
-    MEM_SPEED=$(
-        echo "$DMI" |
-        awk -F': ' '/Configured Memory Speed:/ {print $2; exit}'
-    )
-
-    if [ -z "$MEM_SPEED" ]; then
-        MEM_SPEED=$(
+    # -t 17 = "Memory Device" (por-DIMM: Type, Speed, Configured Memory Speed).
+    if DMI=$(sudo -n dmidecode -t 17 2>/dev/null) && [ -n "$DMI" ]; then
+        MEM_TYPE=$(
             echo "$DMI" |
-            awk -F': ' '/Speed:/ && $2 !~ /Unknown/ {print $2; exit}'
+            awk -F': ' '/^[[:space:]]*Type:/ && $2 !~ /Unknown|Other|None/ {gsub(/^ +| +$/,"",$2); print $2; exit}'
         )
-    fi
 
-    MEM_INFO="${MEM_TYPE} ${MEM_SPEED}"
+        # Velocidad REAL a la que corre la RAM ahora mismo.
+        MEM_SPEED_RAW=$(
+            echo "$DMI" |
+            awk -F': ' '/Configured Memory Speed:/ && $2 !~ /Unknown/ {gsub(/^ +| +$/,"",$2); print $2; exit}'
+        )
+
+        # Fallback: velocidad máxima soportada por el módulo (no la actual).
+        if [ -z "$MEM_SPEED_RAW" ]; then
+            MEM_SPEED_RAW=$(
+                echo "$DMI" |
+                awk -F': ' '/^[[:space:]]*Speed:/ && $2 !~ /Unknown/ {gsub(/^ +| +$/,"",$2); print $2; exit}'
+            )
+        fi
+
+        # dmidecode reporta "2133 MT/s" o "2133 MHz" -> nos quedamos solo
+        # con el número y normalizamos a "MHz" para el formato pedido.
+        MEM_SPEED=$(echo "$MEM_SPEED_RAW" | grep -oE '^[0-9]+')
+    else
+        # sudo -n falló: o no hay regla NOPASSWD para dmidecode, o el usuario
+        # nunca autenticó y no puede hacerlo sin prompt. Ver documentación
+        # al final de este archivo para la línea de sudoers necesaria.
+        MEM_PERM_ERROR=1
+    fi
+fi
+
+if [ -n "$MEM_TYPE" ] && [ -n "$MEM_SPEED" ]; then
+    MEM_INFO="${MEM_TYPE} ${MEM_SPEED}MHz"
+elif [ -n "$MEM_TYPE" ]; then
+    MEM_INFO="$MEM_TYPE"
+elif [ "$MEM_PERM_ERROR" -eq 1 ]; then
+    MEM_INFO="RAM (sin permisos)"
+else
+    MEM_INFO="RAM"
 fi
 
 # --- Disco físico que contiene la raíz (/) ---
@@ -281,3 +305,32 @@ while true; do
              nic_name:$nic_name, net_label:$net_label, net_up:$net_up, net_down:$net_down, 
              net_down_raw:$net_down_raw, net_up_raw:$net_up_raw, gpu_freq:$gpu_freq, gpu_usage:$gpu_usage}'
 done
+
+# ══════════════════════════════════════════════════════════
+#  Permisos requeridos — lectura de RAM (Type + Speed)
+# ══════════════════════════════════════════════════════════
+# dmidecode necesita privilegios de root para leer la tabla SMBIOS
+# (es lo que expone el fabricante del módulo, tipo LPDDR3/DDR4, y la
+# velocidad configurada). Sin esto, sysinfo.sh mostrará
+# "RAM (sin permisos)" en vez de "LPDDR3 2133MHz".
+#
+# Para permitir que sudo -n (no interactivo) ejecute SOLO dmidecode
+# sin pedir contraseña, crea una regla de sudoers dedicada:
+#
+#   echo "$(whoami) ALL=(root) NOPASSWD: /usr/bin/dmidecode" \
+#     | sudo tee /etc/sudoers.d/dmidecode
+#   sudo chmod 440 /etc/sudoers.d/dmidecode
+#
+# Verifica que quedó bien escrita (evita romper sudo por un typo):
+#
+#   sudo visudo -c -f /etc/sudoers.d/dmidecode
+#
+# Prueba que funciona sin contraseña (debe imprimir la tabla, no pedir clave):
+#
+#   sudo -n dmidecode -t 17
+#
+# Nota de seguridad: dmidecode es de solo lectura (no puede modificar
+# el sistema), pero sí expone datos como el número de serie del equipo
+# y de los módulos de RAM. Restringir la regla a ese único binario
+# (como arriba) evita dar sudo total sin contraseña.
+# ══════════════════════════════════════════════════════════
