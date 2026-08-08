@@ -1,0 +1,163 @@
+// ═══════════════════════════════════════════════════════════════════════
+// ▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀
+//
+// ██╗    ██╗ █████╗ ██╗   ██╗██████╗  █████╗ ██████╗ 
+// ██║    ██║██╔══██╗╚██╗ ██╔╝██╔══██╗██╔══██╗██╔══██╗
+// ██║ █╗ ██║███████║ ╚████╔╝ ██████╔╝███████║██████╔╝
+// ██║███╗██║██╔══██║  ╚██╔╝  ██╔══██╗██╔══██║██╔══██╗
+// ╚███╔███╔╝██║  ██║   ██║   ██████╔╝██║  ██║██║  ██║
+//  ╚══╝╚══╝ ╚═╝  ╚═╝   ╚═╝   ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝
+// 
+// ▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀
+// ═══════════════════════════════════════════════════════════════════════
+{
+  // ── Archivos incluidos ────────────────────────────────────────────
+  // Waybar permite "importar" bloques JSON desde otros archivos.
+  // Aquí se separan los módulos (CPU, batería, red...) de los
+  // workspaces de Hyprland para que cada archivo sea más corto
+  // y fácil de mantener.
+
+  "include": [
+    "~/.config/waybar/Modules/Modules.jsonc",
+    "~/.config/waybar/Modules/Workspaces.jsonc"
+  ],
+
+  // ── Ajustes generales de la barra ─────────────────────────────────
+
+  "layer": "top",
+  "width": "98%",
+  "margin-top": 4,
+
+  // ░█▄█░█▀█░█▀▄░█░█░█░░░█▀▀░█▀▀
+  // ░█░█░█░█░█░█░█░█░█░░░█▀▀░▀▀█
+  // ░▀░▀░▀▀▀░▀▀░░▀▀▀░▀▀▀░▀▀▀░▀▀▀
+
+  // ── Orden de los módulos ──────────────────────────────────────────
+  // La barra se divide en tres zonas: left / center / right.
+  // El nombre que se pone aquí debe coincidir EXACTO con la clave
+  // definida en modules.jsonc / workspaces.jsonc.
+
+  "modules-left": [
+    "custom/launcher",
+    "hyprland/workspaces",
+    "mpris"
+  ],
+  "modules-right": [
+    "network",
+    "custom/keyboard",
+    "bluetooth",
+    "pulseaudio#input",
+    "pulseaudio#output",
+    "custom/cava",
+    "backlight",
+    "battery",
+    "custom/profiles",
+    "clock",
+    "custom/notifications",
+    "custom/power"
+  ],
+
+  // ═════════════════════════════════════════════════════════════════
+  //  MÓDULOS "custom/*"
+  //  Waybar no trae estos módulos por defecto: cada uno ejecuta un
+  //  script propio (ver carpeta scripts/) y muestra su salida.
+  // ═════════════════════════════════════════════════════════════════
+
+  // ── 󰣇 LAUNCHER (rofi) Start Menu ───────────────────────────
+  "custom/launcher": {
+    "tooltip": true,
+    "tooltip-format": "󰣇 Start Here :-)",
+    "format": "󰣇 ",
+    "on-click": "rofi -show drun",
+    "on-click-right": "killall rofi"
+  },
+
+  // ── ⏻ POWER (apagar / reiniciar / suspender) ──────────
+  // ⚠️ Estas acciones son irreversibles (poweroff, reboot). Revisa la
+  // sección de seguridad del README antes de modificar este bloque.
+  
+  "custom/power": {
+    "exec": "echo $USER",
+    "interval": "once",
+    "tooltip": true,
+    "tooltip-format": "⏻ Power Options",
+    "format": "<span color='#f7768e'>⏻</span>",
+    "on-click": "rofi -modi power:~/.config/rofi/Scripts/power.sh -show power -theme ~/.config/rofi/Custom-Menu/power.rasi",
+    "menu": "on-click-right",
+    "menu-file": "~/.config/waybar/Scripts/power_menu.xml",
+    "menu-actions": {
+      "reload": "hyprctl reload",
+      "shutdown": "poweroff",
+      "reboot": "reboot",
+      "suspend": "systemctl suspend",
+      "hibernate": "systemctl hibernate",
+      "logout": "hyprctl dispatch exit"
+    }
+  },
+
+  // ── 󰂚 NOTIFICATION CENTER (mako) ────────
+
+  "custom/notifications": {
+    "exec": "~/.config/waybar/Scripts/notifications.sh",
+    "return-type": "json",
+    "interval": 3,
+    "on-click": "~/.config/waybar/Scripts/notification-dismiss.sh; pkill -RTMIN+8 waybar",
+    "signal": 8,
+    "on-click-right": "makoctl restore"
+  },
+
+  // ──   KEYBOARD LAYOUT (US/ES) ────────────────────────────
+  "custom/keyboard": {
+    "exec": "~/.config/waybar/Scripts/kb-layout.sh",
+    "return-type": "json",
+    "interval": 2,
+    "on-click": "~/.config/waybar/Scripts/kb-layout.sh switch-laptop",
+    "on-click-right": "~/.config/waybar/Scripts/kb-layout.sh switch-external",
+    "tooltip": true
+  },
+
+  // ── ⚙ CONTROL CENTER (eww) ─────────────────
+  "custom/control": {
+    "format": "⚙",
+    "tooltip": true,
+    "tooltip-format": "⚙ Settings",
+    "on-click": "eww open control-center --toggle",
+    "on-click-right": "eww close control-center"
+  },
+
+  // ── 󰍉 SEARCH (rofi) ─────────────────────────────────────────────
+  "custom/search": {
+    "format": "󰍉",
+    "on-click": "rofi -show drun -theme ~/.config/rofi/Custom-Menu/search.rasi",
+    "tooltip": true,
+    "tooltip-format": "󰍉 Search..."
+  },
+
+  // ── ⚙ PROFILES ENERGY (ONLY LAPTOP) ───────────────────────────
+  "custom/profiles": {
+    "exec": "~/.config/waybar/Scripts/profiles-label.sh",
+    "interval": 30,
+    "format": "{}",
+    "on-click": "rofi -show profiles -modes 'profiles:~/.config/rofi/Scripts/profiles.sh' -theme ~/.config/rofi/Custom-Menu/profiles.rasi",
+    "tooltip": true,
+    "tooltip-format": "⚙ Energy Profiles."
+  },
+
+  // ──   PENDING UPDATES (pacman) ─────────────
+  "custom/updates": {
+    "exec": "~/.config/waybar/Scripts/update-status.sh",
+    "return-type": "json",
+    "interval": 800,
+    "on-click": "kitty -e bash -c 'sudo pacman -Syu; echo; read -p \"Press Enter to close...\"'",
+    "on-click-right": "pkill -RTMIN+4 waybar"
+  },
+
+  // ── Ecualizador CAVA (visualizador de audio) ──────────────────────
+  "custom/cava": {
+    "exec": "~/.config/waybar/Scripts/waybar-cava.sh",
+    "return-type": "json",
+    "input-delay": 3,
+    "format": "{}",
+    "tooltip": false
+  }
+}

@@ -1,0 +1,41 @@
+;; ══════════════════════════════════════════════════════════
+;;  vars/polls.yuck — variables reactivas
+;; ══════════════════════════════════════════════════════════
+;;
+;; NOTA IMPORTANTE:
+;; eww trae "magic variables" nativas que ya cubren CPU, RAM,
+;; swap, disco, red y temperaturas sin necesidad de scripts:
+;;
+;;   EWW_CPU     -> { cores: [{ core, freq, usage }], avg }
+;;   EWW_RAM     -> { total_mem, free_mem, total_swap, free_swap,
+;;                    available_mem, used_mem, used_mem_perc }
+;;   EWW_DISK    -> { "<mount_point>": { name, total, free, used, used_perc } }
+;;   EWW_NET     -> { "<iface>": { up, down } }
+;;   EWW_TEMPS   -> { "<sensor>": temperatura_en_C }
+;;   EWW_BATTERY -> { "<nombre>": { capacity, status } }
+;;
+;; Se actualizan solas cada 2s. NO hace falta declararlas.
+;; Por eso este archivo solo contiene lo que sí falta: modelo
+;; de CPU, uptime, ESSID de wifi, iGPU y updates pendientes
+;; (todo consolidado en un único script para no llenar la
+;; carpeta de archivos sueltos), más el top de procesos.
+
+;; JSON de una sola línea con todo lo que no cubren las magic vars.
+;; deflisten lee línea por línea, por eso el script imprime UN
+;; único objeto JSON por iteración.
+(deflisten sysinfo :initial "{}"
+  "bash ~/.config/eww/scripts/sysinfo.sh")
+
+;; Top 7 procesos por uso de CPU. Se resuelve con 7 pollers
+;; livianos (uno por fila) en lugar de parsear una tabla multilínea,
+;; que en yuck es innecesariamente complicado.
+(defpoll top1 :interval "5s" "bash ~/.config/eww/scripts/top-processes.sh 1")
+(defpoll top2 :interval "5s" "bash ~/.config/eww/scripts/top-processes.sh 2")
+(defpoll top3 :interval "5s" "bash ~/.config/eww/scripts/top-processes.sh 3")
+(defpoll top4 :interval "5s" "bash ~/.config/eww/scripts/top-processes.sh 4")
+(defpoll top5 :interval "5s" "bash ~/.config/eww/scripts/top-processes.sh 5")
+(defpoll top6 :interval "5s" "bash ~/.config/eww/scripts/top-processes.sh 6")
+(defpoll top7 :interval "5s" "bash ~/.config/eww/scripts/top-processes.sh 7")
+
+;; Toggle opcional para colapsar/expandir la sección de procesos
+(defvar procs_expanded true)

@@ -1,0 +1,387 @@
+// ══════════════════════════════════════════════════════════
+//  eww.scss — Tokyo Night, coherente con Waybar/rofi/SDDM
+// ══════════════════════════════════════════════════════════
+
+$bg:         #1a1b26;
+$bg-panel:   rgba(26, 27, 38, 0.01);
+$bg-dark:    #16161e;
+$bg-highlight: #292e42;
+$fg:         #c0caf5;
+$fg-dark:    #a9b1d6;
+$comment:    #565f89;
+$border:     #3b4261;
+$blue:       #7aa2f7;
+$cyan:       #7dcfff;
+$magenta:    #bb9af7;
+$red:        #f7768e;
+$green:      #9ece6a;
+$yellow:     #e0af68;
+$orange:     #ff9e64;
+
+* {
+    // "Symbols Nerd Font Mono" como fallback explícito: en Nerd Fonts
+    // v3+ (paquete otf-font-awesome / ttf-nerd-fonts-symbols de Arch)
+    // los glyphs de íconos suelen venir en una fuente APARTE de la
+    // fuente base parcheada. Si los íconos no cargan aunque el texto
+    // normal se vea bien, es casi siempre esto: Pango no encuentra el
+    // glyph en "JetBrainsMono Nerd Font" y, sin este fallback, no cae
+    // a ninguna fuente que sí lo tenga.
+    font-family: "JetBrainsMono Nerd Font", "Symbols Nerd Font Mono";
+    font-size: 8pt;
+    color: $fg;
+}
+
+.sidebar {
+    background-color: $bg-panel;
+    border-radius: 14px;
+    border: 1px solid rgba(122, 162, 247, 0);
+    padding: 18px;
+}
+
+.header {
+    .logo {
+        margin-bottom: 2px;
+    }
+    .distro-name {
+        color: $fg;
+        font-weight: bold;
+        font-size: 12pt;
+    }
+    .subtitle {
+        color: $comment;
+        font-size: 7pt;
+    }
+    .uptime {
+        color: $cyan;
+        font-size: 7pt;
+    }
+}
+
+.divider {
+    background-color: rgba(122, 162, 247, 0.12);
+    min-height: 1px;
+}
+
+.section-title {
+    color: $magenta;
+    font-weight: bold;
+    font-size: 8pt;
+    margin-bottom: 2px;
+}
+
+.section-title-detail {
+    color: $comment;
+    font-size: 7pt;
+    margin-bottom: 2px;
+}
+
+.stat-row, .bar-row {
+    .stat-icon {
+        color: $blue;
+        margin-right: 6px;
+        min-width: 16px;
+    }
+    .stat-label {
+        color: $comment;
+    }
+    .stat-value {
+        color: $fg;
+        font-weight: bold;
+    }
+}
+
+progress.bar {
+    min-height: 6px;
+    border-radius: 4px;
+}
+progress.bar > trough {
+    background-color: rgba(255, 255, 255, 0.06);
+    border-radius: 4px;
+    min-height: 6px;
+}
+progress.bar > trough > progress {
+    border-radius: 4px;
+    min-height: 6px;
+}
+.bar-cpu   > trough > progress { background-color: $cyan; }
+.bar-ram   > trough > progress { background-color: $blue; }
+.bar-swap  > trough > progress { background-color: $magenta; }
+.bar-gpu   > trough > progress { background-color: $green; }
+.bar-disk  > trough > progress { background-color: $orange; }
+
+.cpu-graph {
+    color: $cyan;
+    margin-top: 4px;
+}
+
+.spark-graph {
+    margin-top: 2px;
+}
+.spark-cpu { color: $cyan; }
+.spark-swap { color: $magenta; }
+.spark-gpu  { color: $green; }
+
+
+.ram-col { min-width: 135px; }
+.net-col { min-width: 135px; }
+.spark-net-down { color: $cyan; }
+.spark-net-up   { color: $orange; }
+
+
+circular-progress.circle-stat {
+    min-width: 150px;
+    min-height: 150px;
+    color: $blue;
+    background-color: rgba(255, 255, 255, 0.06);
+}
+.circle-stat-label {
+    font-size: 12pt;
+    font-weight: bold;
+    color: $fg;
+}
+.disk-info {
+    min-width: 200px;
+}
+
+.net-name {
+    color: $green;
+    margin-bottom: 2px;
+}
+
+
+.procs-toggle {
+    &:hover { color: $blue; }
+}
+.procs-header, .procs-row {
+    font-family: "JetBrainsMono Nerd Font";
+}
+.procs-header {
+    color: $comment;
+    font-size: 6.5pt;
+    margin-top: 2px;
+    margin-bottom: 1px;
+}
+.procs-row {
+    font-size: 6.5pt;
+    padding: 1px 0;
+}
+.procs-col-name {
+    color: $fg;
+}
+.procs-header .procs-col-name {
+    color: $comment;
+}
+.procs-col-pid {
+    min-width: 46px;
+    color: $comment;
+}
+.procs-col-cpu {
+    min-width: 46px;
+    color: $cyan;
+}
+.procs-col-mem {
+    min-width: 46px;
+    color: $magenta;
+}
+.cc-root {
+  background-color: $bg;
+  color: $fg;
+  border: 2px solid $border;
+  border-radius: 18px;
+  padding: 16px;
+}
+
+// header
+.cc-header {
+  padding: 4px 4px 8px 4px;
+}
+.cc-avatar {
+  font-size: 26px;
+  color: $blue;
+}
+.cc-username {
+  font-size: 15px;
+  font-weight: bold;
+  color: $fg;
+}
+
+// status tiles (wifi / bluetooth / power profile)
+.cc-tile {
+  background-color: $bg-highlight;
+  border: 1px solid $border;
+  border-radius: 14px;
+  padding: 10px 14px;
+  color: $fg-dark;
+  transition: all 200ms ease-in-out;
+}
+.cc-tile:hover {
+  border-color: $blue;
+}
+.cc-tile.active {
+  border-color: $blue;
+  .cc-icon { color: $blue; }
+}
+.cc-icon {
+  font-size: 20px;
+  color: $comment;
+}
+.cc-tile-title {
+  font-weight: bold;
+  color: $fg;
+}
+.cc-tile-sub {
+  font-size: 11px;
+  color: $comment;
+}
+
+// quick toggles grid
+.cc-toggles-grid {
+  padding: 2px 0;
+}
+.cc-toggle {
+  background-color: $bg-highlight;
+  border: 1px solid $border;
+  border-radius: 14px;
+  // cuadrado exacto + padding en 0: GTK le mete padding por defecto
+  // a los botones, y no es simétrico (más horizontal que vertical),
+  // por eso el ícono se veía descentrado. Con min-width==min-height
+  // y padding:0, el único centrado que aplica es el del label hijo.
+  min-width: 52px;
+  min-height: 52px;
+  padding: 0;
+  color: $comment;
+  font-size: 20px;
+}
+.cc-toggle:hover {
+  border-color: $blue;
+}
+.cc-toggle.active {
+  background-color: $blue;
+  color: $bg-dark;
+  border-color: $blue;
+}
+
+// sliders
+.cc-slider-box {
+  background-color: $bg-highlight;
+  border: 1px solid $border;
+  border-radius: 14px;
+  padding: 8px 14px;
+}
+.cc-icon-sm {
+  font-size: 13px;
+  color: $yellow;
+}
+.cc-slider-label {
+  font-size: 12px;
+  color: $fg-dark;
+}
+.cc-slider {
+  min-height: 14px;
+
+  trough {
+    background-color: $bg-dark;
+    border-radius: 8px;
+    min-height: 10px;
+  }
+  highlight {
+    background-color: $blue;
+    border-radius: 8px;
+  }
+  slider {
+    background-color: $fg;
+    border-radius: 50%;
+    min-width: 16px;
+    min-height: 16px;
+    margin: -4px;
+  }
+}
+
+// calendar
+// Grid con navegación mes/año + festivos de Colombia (misma lógica y
+// paleta de calendar-popup.py). Sin reloj — ya está en Waybar.
+// margin: 0 -16px "come" el padding de .cc-root para que el calendario
+// llegue hasta el borde real de la ventana, a diferencia de las demás
+// tiles que quedan encajonadas con el padding normal del panel.
+.cc-calendar-box {
+  background-color: $bg-highlight;
+  border-top: 1px solid $border;
+  border-bottom: 1px solid $border;
+  border-radius: 0;
+  padding: 12px 10px;
+  margin: 0 -16px;
+}
+
+.cc-nav-btn {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  color: $blue;
+  min-width: 18px;
+  min-height: 18px;
+  padding: 0px 4px;
+}
+.cc-nav-btn:hover { color: $fg; }
+
+.cc-nav-label-month {
+  font-size: 13px;
+  font-weight: bold;
+  color: $green;
+}
+.cc-nav-label-year {
+  font-size: 12px;
+  font-weight: bold;
+  color: $blue;
+}
+
+.cc-day-header {
+  font-size: 11px;
+  font-weight: bold;
+  color: $green;
+}
+.cc-day-cell {
+  font-size: 12px;
+  color: $fg;
+  min-height: 22px;
+}
+.cc-day-cell.other-month { color: $comment; }
+.cc-day-cell.today {
+  color: $bg-dark;
+  font-weight: bold;
+  background-color: $blue;
+  border-radius: 6px;
+}
+.cc-day-cell.holiday {
+  color: $red;
+  font-weight: bold;
+}
+.cc-day-cell.today.holiday {
+  // si un festivo cae hoy, se conserva el fondo azul de "hoy" y el
+  // texto en rojo, igual que en calendar-popup.py
+  color: $red;
+  background-color: $blue;
+}
+
+// footer
+.cc-footer {
+  padding: 4px 6px 0 6px;
+}
+.cc-battery-icon {
+  font-size: 16px;
+  color: $green;
+}
+.cc-battery-text {
+  color: $fg-dark;
+}
+.cc-power-btn {
+  background: transparent;
+  border: 1px solid $border;
+  border-radius: 50%;
+  min-width: 28px;
+  min-height: 28px;
+  color: $red;
+}
+.cc-power-btn:hover {
+  background-color: $red;
+  color: $bg-dark;
+}

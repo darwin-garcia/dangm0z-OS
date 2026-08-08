@@ -1,0 +1,209 @@
+;; ~/.config/eww/widgets/control-center.yuck
+;; dangm0z-OS :: Tokyo Night Control Center
+;; Standalone widget object — included from the top-level eww.yuck
+;; Open from Waybar with: eww open control-center --toggle
+;;
+;; Requires: jq, networkmanager, bluez-utils, power-profiles-daemon,
+;;           brightnessctl, wireplumber (wpctl), mako, wlsunset, wlogout,
+;;           python3 (para el grid de calendario, ver calendar-data.py)
+;; (upower ya no hace falta: la batería ahora sale de EWW_BATTERY, la
+;;  magic variable nativa de eww — ver sección "footer" más abajo.)
+
+(deflisten CC_DATA
+  :initial "{\"user\":\"dangmoz\",\"wifi\":{\"connected\":false,\"ssid\":\"\",\"band\":\"\",\"signal\":0},\"bluetooth\":{\"connected\":false,\"device\":\"\",\"battery\":0},\"power_profile\":\"balanced\",\"nightlight\":false,\"dnd\":false,\"airplane\":false,\"hotspot\":false,\"brightness\":50,\"volume\":50,\"muted\":false}"
+  "bash ~/.config/eww/scripts/control-center.sh listen")
+
+;; Grid del calendario (festivos de Colombia + navegación mes/año) —
+;; misma lógica que calendar-popup.py, generada por calendar-data.py.
+;; :initial vacío: el listen loop llena esto en <1s tras abrir eww.
+(deflisten CAL_DATA
+  :initial "{\"year\":0,\"month\":0,\"month_name\":\"\",\"weeks\":[]}"
+  "bash ~/.config/eww/scripts/control-center.sh cal-listen")
+
+;; ---------- header ----------
+
+(defwidget cc-header []
+  (box :class "cc-header" :orientation "h" :space-evenly false :spacing 10
+    (label :class "cc-avatar" :text "")
+    (label :class "cc-username" :text "${replace(jq(CC_DATA, '.user'), "\"", "")}")))
+
+;; ---------- status tiles ----------
+;; Un solo widget reutilizable para wifi/bluetooth en vez de dos
+;; copias casi idénticas. title/sub ya vienen resueltos desde
+;; control-center.sh (fallback + formato calculados en bash, sin
+;; ternarios ni concatenación del lado de eww).
+
+(defwidget cc-status-tile [icon connected title sub onclick]
+  (button :class "cc-tile ${connected == 'true' ? 'active' : ''}"
+    :onclick onclick
+    (box :orientation "h" :space-evenly false :spacing 10
+      (label :class "cc-icon" :text icon)
+      (box :orientation "v" :space-evenly false :halign "start"
+        (label :class "cc-tile-title" :halign "start" :text title)
+        (label :class "cc-tile-sub" :halign "start"
+          :visible {connected == "true"}
+          :text sub)))))
+
+(defwidget cc-wifi []
+  (cc-status-tile :icon "" :connected {jq(CC_DATA, ".wifi.connected")}
+    :title {replace(jq(CC_DATA, ".wifi.title"), "\"", "")}
+    :sub {replace(jq(CC_DATA, ".wifi.sub"), "\"", "")}
+    :onclick "bash ~/.config/eww/scripts/control-center.sh wifi-toggle"))
+
+(defwidget cc-bluetooth []
+  (cc-status-tile :icon "" :connected {jq(CC_DATA, ".bluetooth.connected")}
+    :title {replace(jq(CC_DATA, ".bluetooth.title"), "\"", "")}
+    :sub {replace(jq(CC_DATA, ".bluetooth.sub"), "\"", "")}
+    :onclick "bash ~/.config/eww/scripts/control-center.sh bt-toggle"))
+
+(defwidget cc-power-profile []
+  (button :class "cc-tile"
+    :onclick "bash ~/.config/eww/scripts/control-center.sh power-profile-cycle"
+    (box :orientation "v" :space-evenly false :halign "start"
+      (label :class "cc-tile-title" :halign "start" :text "Power Profiles")
+      (label :class "cc-tile-sub" :halign "start"
+        :text {replace(jq(CC_DATA, ".power_profile"), "\"", "")}))))
+
+;; ---------- quick toggles (2x2 grid) ----------
+
+(defwidget cc-toggle [icon tooltip active onclick]
+  (button :class "cc-toggle ${active == 'true' ? 'active' : ''}"
+    :onclick onclick
+    :tooltip tooltip
+    (label :text icon)))
+
+(defwidget cc-quick-toggles []
+  (box :class "cc-toggles-grid" :orientation "v" :space-evenly true :spacing 6
+    (box :orientation "h" :space-evenly true :spacing 6
+      (cc-toggle :icon "" :tooltip "Night Light" :active {jq(CC_DATA, ".nightlight")} :onclick "bash ~/.config/eww/scripts/control-center.sh nightlight-toggle")
+      (cc-toggle :icon "" :tooltip "Do Not Disturb" :active {jq(CC_DATA, ".dnd")} :onclick "bash ~/.config/eww/scripts/control-center.sh dnd-toggle"))
+    (box :orientation "h" :space-evenly true :spacing 6
+      (cc-toggle :icon "" :tooltip "Airplane Mode" :active {jq(CC_DATA, ".airplane")} :onclick "bash ~/.config/eww/scripts/control-center.sh airplane-toggle")
+      (cc-toggle :icon "" :tooltip "Hotspot" :active {jq(CC_DATA, ".hotspot")} :onclick "bash ~/.config/eww/scripts/control-center.sh hotspot-toggle"))))
+
+;; ---------- sliders ----------
+;; No existe magic-var nativa de eww para brillo/volumen (a diferencia
+;; de EWW_BATTERY), así que estos siguen viniendo de CC_DATA vía
+;; brightnessctl / wpctl en control-center.sh — es el patrón oficial
+;; recomendado por la documentación de eww para valores sin magic-var.
+
+(defwidget cc-brightness []
+  (box :class "cc-slider-box" :orientation "v" :space-evenly false :spacing 4
+    (box :orientation "h" :space-evenly false :spacing 6
+      (label :class "cc-icon-sm" :text "")
+      (label :class "cc-slider-label" :text "Brightness"))
+    (scale :class "cc-slider" :min 0 :max 100
+      :value {jq(CC_DATA, ".brightness")}
+      :onchange "bash ~/.config/eww/scripts/control-center.sh set-brightness {}")))
+
+(defwidget cc-volume []
+  (box :class "cc-slider-box" :orientation "v" :space-evenly false :spacing 4
+    (box :orientation "h" :space-evenly false :spacing 6
+      (label :class "cc-icon-sm" :text "${jq(CC_DATA, '.muted') == 'true' ? '' : ''}")
+      (label :class "cc-slider-label" :text "Volume"))
+    (scale :class "cc-slider" :min 0 :max 100
+      :value {jq(CC_DATA, ".volume")}
+      :onchange "bash ~/.config/eww/scripts/control-center.sh set-volume {}")))
+
+;; ---------- calendar ----------
+;; Grid de calendario propio con navegación de mes/año independiente +
+;; festivos de Colombia — misma lógica que calendar-popup.py, generada
+;; por calendar-data.py. Sin reloj (ya está en la barra de Waybar) y
+;; con márgenes negativos para que ocupe todo el ancho del panel,
+;; esquina a esquina, en vez de quedar encajonado como las demás tiles.
+
+(defwidget cc-nav-btn [glyph onclick]
+  (button :class "cc-nav-btn" :onclick onclick (label :text glyph)))
+
+(defwidget cc-day-cell [day]
+  (label :class "cc-day-cell ${day.in_month ? '' : 'other-month'} ${day.today ? 'today' : ''} ${day.holiday ? 'holiday' : ''}"
+    :hexpand true
+    :text {day.day}))
+
+(defwidget cc-week-row [week]
+  (box :orientation "h" :space-evenly true :hexpand true
+    (for day in week (cc-day-cell :day day))))
+
+(defwidget cc-calendar []
+  (box :class "cc-calendar-box" :orientation "v" :space-evenly false :spacing 6 :hexpand true
+
+    ;; navegación de mes (independiente del año)
+    (box :orientation "h" :halign "center" :space-evenly false :spacing 10
+      (cc-nav-btn :glyph "‹" :onclick "bash ~/.config/eww/scripts/control-center.sh cal-prev-month")
+      (label :class "cc-nav-label-month" :text "${replace(jq(CAL_DATA, '.month_name'), "\"", "")}")
+      (cc-nav-btn :glyph "›" :onclick "bash ~/.config/eww/scripts/control-center.sh cal-next-month"))
+
+    ;; navegación de año (independiente del mes)
+    (box :orientation "h" :halign "center" :space-evenly false :spacing 10
+      (cc-nav-btn :glyph "‹" :onclick "bash ~/.config/eww/scripts/control-center.sh cal-prev-year")
+      (label :class "cc-nav-label-year" :text "${jq(CAL_DATA, '.year')}")
+      (cc-nav-btn :glyph "›" :onclick "bash ~/.config/eww/scripts/control-center.sh cal-next-year"))
+
+    ;; encabezado de días (fijo, igual que WEEKDAY_ABBR en calendar-popup.py)
+    (box :orientation "h" :space-evenly true :hexpand true
+      (label :class "cc-day-header" :hexpand true :text "Sun")
+      (label :class "cc-day-header" :hexpand true :text "Mon")
+      (label :class "cc-day-header" :hexpand true :text "Tue")
+      (label :class "cc-day-header" :hexpand true :text "Wed")
+      (label :class "cc-day-header" :hexpand true :text "Thu")
+      (label :class "cc-day-header" :hexpand true :text "Fri")
+      (label :class "cc-day-header" :hexpand true :text "Sat"))
+
+    ;; grid de días
+    (box :orientation "v" :space-evenly false :spacing 4 :hexpand true
+      (for week in {jq(CAL_DATA, ".weeks")} (cc-week-row :week week)))))
+
+;; ---------- footer ----------
+;; Batería: se usa EWW_BATTERY, la magic-var nativa de eww (equivalente
+;; a lo que ya usan EWW_CPU/EWW_RAM/EWW_DISK en sidebar.yuck), en vez
+;; de parsear upower a mano en el script. Se actualiza sola cada 2s,
+;; sin necesidad de declararla ni de tener upower instalado.
+;; BAT0 es el nombre estándar en el ThinkPad X1 Carbon; si tu equipo
+;; expone otro nombre, hacé `eww debug` y revisá la clave real bajo
+;; EWW_BATTERY, o corré: cat /sys/class/power_supply/BAT*/capacity
+
+(defwidget cc-footer []
+  (box :class "cc-footer" :orientation "h" :space-evenly false
+    (box :orientation "h" :space-evenly false :spacing 6
+      (label :class "cc-battery-icon"
+        :text "${EWW_BATTERY.BAT0.status == 'Charging' ? '' : (EWW_BATTERY.BAT0.capacity >= 90 ? '' : (EWW_BATTERY.BAT0.capacity >= 60 ? '' : (EWW_BATTERY.BAT0.capacity >= 35 ? '' : (EWW_BATTERY.BAT0.capacity >= 15 ? '' : ''))))}")
+      (label :class "cc-battery-text" :text "${round(EWW_BATTERY.BAT0.capacity, 0)}%"))
+    (box :hexpand true)
+    (button :class "cc-power-btn" :onclick "bash ~/.config/eww/scripts/control-center.sh power-menu"
+      (label :text ""))))
+
+;; ---------- root + window ----------
+
+(defwidget control-center []
+  (box :class "cc-root" :orientation "v" :space-evenly false :spacing 10
+    (cc-header)
+    (box :class "cc-status-tiles" :orientation "v" :space-evenly false :spacing 6
+      (cc-wifi)
+      (cc-bluetooth)
+      (cc-power-profile))
+    (cc-quick-toggles)
+    (cc-brightness)
+    (cc-volume)
+    (cc-calendar)
+    (cc-footer)))
+
+;; :focusable false — tu build de eww no soporta los strings
+;; "none"/"ondemand"/"exclusive" (eso llegó en un PR más reciente de
+;; eww), así que hay que usar booleano. "true" en Wayland mapea a
+;; keyboard-mode EXCLUSIVE: agarra el teclado a nivel compositor y
+;; Hyprland deja de recibir cualquier tecla, incluidos tus keybinds
+;; para cerrar la ventana (ver elkowar/eww#651). Con "false" el mouse
+;; sigue funcionando normal en botones y sliders — solo se pierde
+;; entrada de teclado, que este widget no necesita para nada.
+(defwindow control-center
+  :monitor 0
+  :namespace "eww-control-center"
+  :geometry (geometry :x "10px"
+                       :y "40px"
+                       :width "300px"
+                       :height "540px"
+                       :anchor "top right")
+  :stacking "overlay"
+  :wm-ignore false
+  :focusable false
+  (control-center))
