@@ -44,7 +44,8 @@ configuration {
 
 /* ── Window — outer ring en rojo (distingue del launcher) ─── */
 window {
-    width:            380px;
+    width:            360px;
+    height:           440px;
     background-color: #1a1b26A6;
     border:           2px;
     border-color:     @red;          /* outer ring: rojo en lugar de cyan */
@@ -56,7 +57,7 @@ window {
 
 /* ── Main box — inner ring ────────────────────────────────── */
 mainbox {
-    children:         [ listview ];
+    children:         [ textbox-header, listview ];
     padding:          1.8em;
     background-color: transparent;
     border:           1px;
@@ -65,16 +66,20 @@ mainbox {
     spacing:          1em;
 }
 
-/* ── Header ───────────────────────────────────────────────── */
-header {
-    str:              "⏻  Power Menu";
-    expand:           true;
+/*
+ * Header — DEBE llamarse "textbox-*" para que rofi lo trate como
+ * textbox (mismo patrón que default.rasi). Tamaño proporcional al
+ * ancho de la ventana (380px, la más pequeña de las tres menús).
+ */
+textbox-header {
+    content:          "⏻ Power Menu";
+    font:             "JetBrainsMono Nerd Font Bold 14";
+    height:           42px;
+    expand:           false;
     background-color: transparent;
     text-color:       @red;
-    font:             "JetBrainsMono Nerd Font Bold 13";
     horizontal-align: 0.5;
     vertical-align:   0.5;
-    padding:          0 0 0.4em 0;
     border:           0px 0px 1px 0px;
     border-color:     #f7768e33;
 }

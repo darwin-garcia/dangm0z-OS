@@ -54,6 +54,7 @@ configuration {
 /* ── Window — borde verde ─────────────────────────────────── */
 window {
     width:            560px;
+    height:           380px;
     background-color: #1a1b2680;   /* ~50% opacidad — blur visible */
     border:           2px;
     border-color:     @green1;
@@ -65,13 +66,32 @@ window {
 
 /* ── Main box — anillo interior ───────────────────────────── */
 mainbox {
-    children:         [ message, listview ];
+    children:         [ textbox-header, message, listview ];
     padding:          1.5em;
     background-color: #1a1b2640;
     border:           1px;
     border-color:     @green2;
     border-radius:    15px;
     spacing:          1em;
+}
+
+/*
+ * Header — DEBE llamarse "textbox-*" para que rofi lo trate como
+ * textbox (mismo patrón que default.rasi). Tamaño proporcional al
+ * ancho de la ventana (560px, entre power.rasi 380px y
+ * default.rasi 820px).
+ */
+textbox-header {
+    content:          "󱤁 Power Profiles";
+    font:             "JetBrainsMono Nerd Font Bold 17";
+    height:           48px;
+    expand:           false;
+    background-color: transparent;
+    text-color:       @green1;
+    horizontal-align: 0.5;
+    vertical-align:   0.5;
+    border:           0px 0px 1px 0px;
+    border-color:     #9ece6a33;
 }
 
 /* ── Status bar (batería / perfil / tiempo) ───────────────── */

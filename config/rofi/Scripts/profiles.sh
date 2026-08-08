@@ -136,10 +136,10 @@ _active_index() {
 # ── Icono del perfil ─────────────────────────────────────────────────────────
 _profile_icon() {
     case "$1" in
-        performance)  echo "󱐋" ;;
-        balanced)     echo "⚖" ;;
-        power-saver)  echo "󰌪" ;;
-        *)            echo "?" ;;
+        performance)  echo "󰂄" ;;
+        balanced)     echo "󱟢" ;;
+        power-saver)  echo "󱈑" ;;
+        *)            echo "󰂑" ;;
     esac
 }
 
@@ -187,7 +187,7 @@ ACTIVE=$(_active_index "$CURRENT")
 
 # ── Construir cadena de tiempo restante ─────────────────────────────────────
 if [[ "$BAT_STATE" == "fully-charged" ]]; then
-    TIME_SPAN="<span foreground='${C_GREEN}'>󰂄 Cargado</span>"
+    TIME_SPAN="<span foreground='${C_GREEN}'>󰂄 Full</span>"
 elif [[ "$BAT_STATE" == "charging" && -n "$BAT_TIME" ]]; then
     TIME_SPAN="<span foreground='${C_CYAN}'>󰂄 ${BAT_TIME}</span>"
 elif [[ -n "$BAT_TIME" ]]; then
@@ -215,11 +215,11 @@ printf '\0active\x1f%s\n'  "$ACTIVE"   # marca el perfil activo
 
 # ── Entradas del menú (Pango markup habilitado) ──────────────────────────────
 #   Formato: icono  Nombre      descripción (muted)
-printf '<span foreground="%s" size="large">󱐋</span>  <b>Performance</b>  <span foreground="%s" size="small">CPU sin límite</span>\n' \
+printf '<span foreground="%s" size="large">󱐋</span>  <b>Performance</b>  <span foreground="%s" size="small"> CPU Full Performance</span>\n' \
     "$C_ORANGE" "$C_MUTED"
 
-printf '<span foreground="%s" size="large">⚖</span>  <b>Balanced</b>  <span foreground="%s" size="small">Balance energía/rendimiento</span>\n' \
+printf '<span foreground="%s" size="large">󱟢</span>  <b>Balanced</b>  <span foreground="%s" size="small"> Better performance/energy</span>\n' \
     "$C_BLUE" "$C_MUTED"
 
-printf '<span foreground="%s" size="large">󰌪</span>  <b>Power Saver</b>  <span foreground="%s" size="small">Máxima autonomía</span>\n' \
+printf '<span foreground="%s" size="large">󱈑</span>  <b>Power Saver</b>  <span foreground="%s" size="small">󱐮 Max life time laptop</span>\n' \
     "$C_GREEN" "$C_MUTED"
