@@ -2,6 +2,12 @@
 
 ROW="${1:-1}"
 
+# $ROW se interpola directo en el script de sed ("${ROW}p"). Si algún
+# día este script se llama con un argumento no controlado (en vez de
+# los literales 1-7 fijos de polls.yuck), un valor como "1;s/.*/pwned/"
+# permitiría inyectar comandos de sed. Lo validamos como entero simple.
+[[ "$ROW" =~ ^[0-9]+$ ]] || { echo "ROW inválido" >&2; exit 1; }
+
 ps -eo comm,pid,pcpu,rss --no-headers \
 | sort -k3,3nr -k4,4nr \
 | sed -n "${ROW}p" \

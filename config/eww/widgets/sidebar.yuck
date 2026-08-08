@@ -15,14 +15,17 @@
 ;; \__/_|\__,_|\___|_.__/ \__,_|_|   
 ;;                                  
 ;; ═══════════════════════════════════════════════════════════════════════════════════
-;; ── Fila reutilizable: icono + etiqueta + valor a la derecha ──
+
+;; ──  Fila reutilizable: icono + etiqueta + valor a la derecha ──
+
 (defwidget stat-row [icon label value]
   (box :class "stat-row" :orientation "h" :space-evenly false
     (label :class "stat-icon" :text icon)
     (label :class "stat-label" :text label :halign "start" :hexpand true)
     (label :class "stat-value" :text value :halign "end")))
 
-;; ── Fila con barra de progreso debajo del label ──
+;; ──  Fila con barra de progreso debajo del label ──
+
 (defwidget bar-row [icon label value percent barclass]
   (box :class "bar-row" :orientation "v" :space-evenly false
     (box :orientation "h" :space-evenly false
@@ -32,19 +35,23 @@
     (progress :class "bar ${barclass}" :value percent :height 6)))
 
 ;; ── Separador ──
+
 (defwidget divider []
   (box :class "divider" :height 1 :hexpand true))
 
-;; ── Título de sección con detalle en línea (ej: "CPU  Intel Core i7-10510U") ──
+;; ── Título de sección con detalle en línea (ej: "CPU  Intel Core i7-6820HQ") ──
+
 (defwidget section-title-row [icon title detail]
   (box :class "section-title-row" :orientation "h" :space-evenly false :spacing 6
     (label :class "section-title" :halign "start" :valign "end" :text "${icon} ${title}")
     (label :class "section-title-detail" :halign "start" :valign "end" :hexpand true
            :limit-width 26 :text detail)))
 
-;; ── Gráfico de picos reutilizable (histórico de un valor 0-100) ──
+;; ──   Gráfico de picos reutilizable (histórico de un valor 0-100) ──
+
 ;; Nota: el widget `graph` de eww no tiene alto por defecto, así que
 ;; si no le das :height explícito colapsa a 0px y no se ve nada.
+
 (defwidget spark-graph [value graphclass]
   (graph :class "spark-graph ${graphclass}"
          :value value
@@ -57,7 +64,8 @@
          :min 0
          :max 100))
 
-;; ── Header: logo + Linux System Info. ──
+;; ── 󰣇 Header: logo + Linux System Info. ──
+
 (defwidget header []
   (box :class "header" :orientation "v" :space-evenly false :spacing 6
     (label :class "distro-name" :halign "start"
@@ -69,6 +77,7 @@
            :text " : ${replace(jq(sysinfo, '.uptime'), "\"", "")}")))
 
 ;; ──  CPU ──
+
 (defwidget cpu-section []
   (box :class "section" :orientation "v" :space-evenly false :spacing 4
     (section-title-row :icon "" :title "CPU"
@@ -79,6 +88,7 @@
     (spark-graph :value {EWW_CPU.avg} :graphclass "spark-cpu")))
 
 ;; ──  RAM &  Swap ──
+
 (defwidget ram-section []
   (box :class "section" :orientation "v" :space-evenly false :spacing 4
     (section-title-row :icon "󰍛" :title "Memory"
@@ -95,7 +105,8 @@
         (stat-row :icon "" :label "Use" :value "${EWW_RAM.total_swap > 0 ? round((EWW_RAM.total_swap - EWW_RAM.free_swap) * 100 / EWW_RAM.total_swap, 0) : 0}%")
         (spark-graph :value {EWW_RAM.total_swap > 0 ? round((EWW_RAM.total_swap - EWW_RAM.free_swap) * 100 / EWW_RAM.total_swap, 0) : 0} :graphclass "spark-swap")))))
 
-;; ── iGPU (Intel, vía sysfs) ──
+;; ── 󰢮 iGPU (Intel, vía sysfs) ──
+
 (defwidget spark-graph-auto [value graphclass]
   (graph :class "spark-graph ${graphclass}"
          :value value
@@ -107,6 +118,7 @@
          :dynamic true))
 
 ;; ── 󰢮 iGPU / Graphics ──
+
 (defwidget gpu-section []
   (box :class "section" :orientation "v" :space-evenly false :spacing 4
     (section-title-row :icon "󰢮" :title "GPU"
@@ -119,16 +131,20 @@
 
 ;; ──  Storage (Circle Plot) ──
 ;; ── widget reutilizable: anillo + porcentaje centrado ──
+
 (defwidget circle-stat [value]
   (box :orientation "v" :space-evenly false :spacing 6
-    (circular-progress :value value :class "circle-stat" :thickness 34 :start-at 75 :clockwise true)
+    (circular-progress :value value :class "circle-stat" :thickness 32 :start-at 75 :clockwise true)
     (label :class "circle-stat-label" :text "${round(value, 0)}%")))
 
 ;; ── 󰋊 Storage (Data) ──
+
 (defwidget disk-section []
   (box :class "section" :orientation "v" :space-evenly false :spacing 4
-    (section-title-row :icon "󰋊" :title "Storage"
-                       :detail "${jq(sysinfo, '.disk_model') == "null" ? "" : replace(jq(sysinfo, '.disk_model'), "\"", "")}")
+    (box :class "section-title-row" :orientation "h" :space-evenly false :spacing 6
+      (label :class "section-title" :halign "start" :valign "end" :text "󰋊 Storage")
+      (label :class "section-title-detail" :halign "start" :valign "end" :hexpand true :limit-width 34
+             :text "${jq(sysinfo, '.disk_model') == "null" ? "" : replace(jq(sysinfo, '.disk_model'), "\"", "")}${jq(sysinfo, '.disk_health') == "null" || jq(sysinfo, '.disk_health') == "\"N/A\"" ? "" : ".  " + replace(jq(sysinfo, '.disk_health'), "\"", "") + "%"}"))
     (box :orientation "h" :halign "fill" :space-evenly false :spacing 18
       (circle-stat :value {EWW_DISK["/"].used_perc})
       (box :class "disk-info" :orientation "v" :space-evenly false :spacing 6 :valign "center" :hexpand true
@@ -136,17 +152,6 @@
         (stat-row :icon "󰋊" :label "Partition" :value "${jq(sysinfo, '.disk_partition') == "null" ? "N/A" : replace(jq(sysinfo, '.disk_partition'), "\"", "")}")
         (stat-row :icon "" :label "Used" :value "${round(EWW_DISK["/"].used / 1024 / 1024 / 1024, 0)} GB")
         (stat-row :icon "" :label "Free" :value "${round(EWW_DISK["/"].free / 1024 / 1024 / 1024, 0)} GB")))))
-
-;; ── 󰢩 Network (Buffering) ──
-(defwidget net-graph [value]
-  (graph :class "spark-graph spark-net"
-         :value value
-         :height 34
-         :hexpand true
-         :time-range "60s"
-         :thickness 2
-         :line-style "round"
-         :dynamic true))
 
 ;; ── 󰛳 Network (Chart Bar) ──
 (defwidget net-graph [value graphclass]
@@ -160,6 +165,7 @@
          :dynamic true))
 
 ;; ── 󰛳 Network (Data Reading) ──
+
 (defwidget net-section []
   (box :class "section" :orientation "v" :space-evenly false :spacing 4
     (box :class "section-title-row" :orientation "h" :space-evenly false :spacing 6
@@ -167,7 +173,15 @@
              :text "${jq(sysinfo,'.net_type') == "wifi" ? "󰤨" : (jq(sysinfo,'.net_type') == "ethernet" ? "󰈀" : "󰛳")} Network")
       (label :class "section-title-detail" :halign "start" :valign "end" :hexpand true :limit-width 26
              :text "${jq(sysinfo, '.nic_name') == "null" ? "" : replace(jq(sysinfo, '.nic_name'), "\"", "")}"))
-    (label :class "net-name" :halign "start" :text "${replace(jq(sysinfo, '.net_label'), "\"", "")}")
+    (box :class "net-name-row" :orientation "h" :space-evenly false
+      (label :class "net-name" :halign "start" :hexpand true
+             :text "${replace(jq(sysinfo, '.net_label'), "\"", "")}")
+      (label :class "net-signal" :halign "end"
+             :text "󰥛 ${jq(sysinfo, '.net_signal') == "null" || jq(sysinfo, '.net_signal') == "\"N/A\"" ? "" : replace(jq(sysinfo, '.net_signal'), "\"", "") + "%"}"))
+    (box :class "net-info" :orientation "v" :space-evenly false :spacing 4
+      (stat-row :icon "󰌘" :label "IP Address" :value "${jq(sysinfo, '.net_ip') == "null" ? "N/A" : replace(jq(sysinfo, '.net_ip'), "\"", "")}")
+      (stat-row :icon "󱜠" :label "Subnet Mask" :value "${jq(sysinfo, '.net_mask') == "null" ? "N/A" : replace(jq(sysinfo, '.net_mask'), "\"", "")}")
+      (stat-row :icon "󰌗" :label "Gateway" :value "${jq(sysinfo, '.net_gw') == "null" ? "N/A" : replace(jq(sysinfo, '.net_gw'), "\"", "")}"))
     (box :orientation "h" :space-evenly true :spacing 10
       (box :class "net-col" :orientation "v" :space-evenly false :spacing 4
         (stat-row :icon "󰇚" :label "Downstream" :value "${replace(jq(sysinfo, '.net_down'), "\"", "")}")
@@ -177,6 +191,7 @@
         (net-graph :value {jq(sysinfo, '.net_up_raw') == "null" ? 0 : replace(jq(sysinfo, '.net_up_raw'), "\"", "")} :graphclass "spark-net-up")))))
 
 ;; ── 󰀻 Top Process (Section) ──
+
 (defwidget procs-section []
   (box :class "section" :orientation "v" :space-evenly false :spacing 4
     (eventbox :onclick "eww update procs_expanded=${!procs_expanded}"
@@ -196,6 +211,7 @@
         (label :class "procs-row" :halign "start" :hexpand true :xalign 0 :text top7)))))
 
 ;; ── Full Panel (Section) ──
+
 (defwidget sidebar []
   (box :class "sidebar" :orientation "v" :space-evenly false :spacing 7 :hexpand true :vexpand true
     (header)

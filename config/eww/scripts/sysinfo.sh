@@ -118,12 +118,114 @@ if [ -n "$ROOT_SRC_RAW" ]; then
 fi
 [ -z "$DISK_MODEL" ] && DISK_MODEL="NVMe SSD"
 
+# --- Salud del SSD (smartctl) ---
+# La salud no cambia segundo a segundo, así que se calcula UNA sola
+# vez al arrancar el script (no dentro del loop) para no golpear el
+# disco/spawnear smartctl cada 2s sin necesidad.
+get_ssd_health() {
+    local dev="$1" json used val
+    [ -z "$dev" ] && { echo ""; return; }
+    command -v smartctl >/dev/null 2>&1 || { echo ""; return; }
+
+    json=$(sudo -n smartctl -a -j "$dev" 2>/dev/null)
+    [ -z "$json" ] && { echo ""; return; }
+
+    # NVMe: el propio drive expone "percentage_used" (0 = nuevo,
+    # 100 = fin de vida estimado por el fabricante). Salud = 100 - eso.
+    used=$(echo "$json" | jq -r '.nvme_smart_health_information_log.percentage_used // empty' 2>/dev/null)
+    if [ -n "$used" ]; then
+        awk -v u="$used" 'BEGIN{h=100-u; if(h<0)h=0; if(h>100)h=100; printf "%.0f", h}'
+        return
+    fi
+
+    # SATA/AHCI: distintos fabricantes usan distintos IDs SMART para
+    # "vida restante" como porcentaje directo: 231 (SSD_Life_Left),
+    # 233 (Media_Wearout_Indicator) o 177 (Wear_Leveling_Count).
+    # Tomamos el primero que exista.
+    val=$(echo "$json" | jq -r '.ata_smart_attributes.table[]? | select(.id==231 or .id==233 or .id==177) | .value' 2>/dev/null | head -n1)
+    if [ -n "$val" ] && [ "$val" != "null" ]; then
+        echo "$val"
+        return
+    fi
+
+    echo ""
+}
+
+# El disco raíz suele ser una partición (ej. /dev/nvme0n1p2); smartctl
+# necesita el disco padre completo (/dev/nvme0n1), así que lo resolvemos
+# con lsblk en vez de asumir el sufijo de partición manualmente.
+DISK_DEV=""
+if [ -n "$ROOT_SRC_RAW" ]; then
+    ROOT_DEV_CLEAN=$(echo "$ROOT_SRC_RAW" | sed -E 's/\[.*\]//')
+    PKNAME=$(lsblk -no PKNAME "$ROOT_DEV_CLEAN" 2>/dev/null | head -n1)
+    if [ -n "$PKNAME" ]; then
+        DISK_DEV="/dev/${PKNAME}"
+    else
+        DISK_DEV="$ROOT_DEV_CLEAN"
+    fi
+fi
+
+DISK_HEALTH=$(get_ssd_health "$DISK_DEV")
+[ -z "$DISK_HEALTH" ] && DISK_HEALTH="N/A"
+
+get_default_iface() {
+    # Interfaz que el kernel usaría HOY para salir a internet, según
+    # la tabla de rutas activa (respeta métricas de NetworkManager).
+    ip route get 1.1.1.1 2>/dev/null \
+        | awk '{for(i=1;i<=NF;i++) if($i=="dev"){print $(i+1); exit}}'
+}
+
 get_iface() {
-    ip route get 1.1.1.1 2>/dev/null | awk '/dev/ {for(i=1;i<=NF;i++) if($i=="dev") print $(i+1); exit}'
+    local iface
+
+    # 1) Prioridad dura: cualquier Ethernet con "carrier" (cable
+    #    físicamente conectado y con link up) gana SIEMPRE sobre WiFi.
+    #    Esto es lo que corrige el bug de "no cambia de adaptador":
+    #    si dependemos solo de `ip route get`, cuando ambas interfaces
+    #    tienen ruta por defecto (métricas iguales/empatadas o la
+    #    tabla de rutas tarda en re-priorizar) el sidebar se queda
+    #    mostrando la interfaz vieja. Comprobar el carrier del cable
+    #    es instantáneo y no depende de que NetworkManager reordene
+    #    métricas a tiempo.
+    for c in /sys/class/net/en*/carrier /sys/class/net/eth*/carrier; do
+        [ -f "$c" ] || continue
+        if [ "$(cat "$c" 2>/dev/null)" = "1" ]; then
+            iface=$(basename "$(dirname "$c")")
+            echo "$iface"
+            return
+        fi
+    done
+
+    # 2) Sin Ethernet conectado: usamos la ruta por defecto real.
+    iface=$(get_default_iface)
+    if [ -n "$iface" ]; then
+        echo "$iface"
+        return
+    fi
+
+    # 3) Último recurso: cualquier WiFi con carrier activo (cubre el
+    #    caso raro en que la ruta por defecto aún no se resolvió pero
+    #    la interfaz ya tiene link).
+    for c in /sys/class/net/wl*/carrier; do
+        [ -f "$c" ] || continue
+        if [ "$(cat "$c" 2>/dev/null)" = "1" ]; then
+            echo "$(basename "$(dirname "$c")")"
+            return
+        fi
+    done
+}
+
+# Sanitiza el nombre de interfaz antes de usarlo para construir rutas
+# en /sys/class/net/. Los nombres de interfaz de red reales nunca
+# contienen "/", "..", espacios, etc., así que cualquier valor que no
+# matchee esto se descarta en vez de usarse ciegamente en un path.
+is_safe_iface() {
+    [[ "$1" =~ ^[a-zA-Z0-9_.:-]+$ ]]
 }
 
 read_bytes() {
     local iface="$1" dir="$2"
+    is_safe_iface "$iface" || { echo 0; return; }
     cat "/sys/class/net/${iface}/statistics/${dir}_bytes" 2>/dev/null || echo 0
 }
 
@@ -133,6 +235,63 @@ human_speed() {
         if (b >= 1048576) printf "%.1f MB/s", b/1048576;
         else printf "%.1f KB/s", b/1024;
     }'
+}
+
+# --- Intensidad de señal WiFi, normalizada a porcentaje (0-100) ---
+# Ethernet no tiene un equivalente real de "intensidad" (es un cable),
+# así que a una conexión cableada activa se le asigna 100% en el loop
+# principal: es justamente lo que hace que, al mostrarse el número,
+# Ethernet siempre gane frente a un WiFi con señal parcial — reforzando
+# visualmente la misma prioridad que ya aplica get_iface().
+get_wifi_signal() {
+    local iface="$1" signal
+    [ -z "$iface" ] && { echo ""; return; }
+
+    if command -v nmcli >/dev/null 2>&1; then
+        signal=$(nmcli -t -f active,signal dev wifi 2>/dev/null | awk -F: '$1=="yes"{print $2; exit}')
+    fi
+
+    if [ -z "$signal" ] && [ -f /proc/net/wireless ]; then
+        signal=$(awk -v ifc="${iface}:" '$1==ifc {gsub(/\./,"",$3); q=$3; if(q<0)q=0; if(q>70)q=70; printf "%.0f", (q/70)*100}' /proc/net/wireless)
+    fi
+
+    echo "$signal"
+}
+
+# --- Conversión de prefijo CIDR a máscara de subred decimal ---
+prefix_to_netmask() {
+    local prefix="$1" i octet mask=""
+    for ((i = 0; i < 4; i++)); do
+        if [ "$prefix" -ge 8 ]; then
+            octet=255
+            prefix=$((prefix - 8))
+        elif [ "$prefix" -le 0 ]; then
+            octet=0
+        else
+            octet=$((256 - 2 ** (8 - prefix)))
+            prefix=0
+        fi
+        mask+="$octet"
+        [ "$i" -lt 3 ] && mask+="."
+    done
+    echo "$mask"
+}
+
+# --- IP, máscara de subred y gateway de la interfaz activa ---
+get_net_details() {
+    local iface="$1" cidr addr prefix mask gw
+    is_safe_iface "$iface" || { echo "N/A|N/A|N/A"; return; }
+
+    cidr=$(ip -4 -o addr show dev "$iface" scope global 2>/dev/null | awk '{print $4; exit}')
+    if [ -n "$cidr" ]; then
+        addr="${cidr%%/*}"
+        prefix="${cidr##*/}"
+        mask=$(prefix_to_netmask "$prefix")
+    fi
+
+    gw=$(ip -4 route show default dev "$iface" 2>/dev/null | awk '{print $3; exit}')
+
+    echo "${addr:-N/A}|${mask:-N/A}|${gw:-N/A}"
 }
 
 resolve_nic_name() {
@@ -173,6 +332,17 @@ NET_TYPE="disconnected"
 NIC_NAME="N/A"
 PREV_RX=0
 PREV_TX=0
+
+# --- Suavizado de velocidad de red (EMA) ---
+# A 1 muestra cada 2s, una ráfaga corta y aislada (un solo paquete,
+# un ACK, un check de DNS) produce un delta de bytes que, dividido
+# entre el intervalo, se ve como un pico agudo en la gráfica aunque
+# la velocidad real promedio sea casi cero. Usamos un promedio móvil
+# exponencial para amortiguar esos picos sin introducir mucho retraso.
+# Alpha más bajo = más suave (y más lag); 0.35 es un buen punto medio.
+EMA_ALPHA=0.35
+EMA_DOWN=0
+EMA_UP=0
 
 GPU_CARD=""
 for c in /sys/class/drm/card*/; do
@@ -221,11 +391,19 @@ while true; do
         NET_TYPE="unknown"
     fi
 
+    is_safe_iface "$CUR_IFACE" || CUR_IFACE="lo"
+
     if [ "$CUR_IFACE" != "$IFACE" ]; then
         IFACE="$CUR_IFACE"
         PREV_RX=$(read_bytes "$IFACE" rx)
         PREV_TX=$(read_bytes "$IFACE" tx)
         NIC_NAME=$(resolve_nic_name "$IFACE")
+        # Sin este reset, al pasar de WiFi a Ethernet (o viceversa) la
+        # gráfica arrastraba unos segundos el EMA de la interfaz vieja,
+        # mostrando velocidad "fantasma" que no correspondía al nuevo
+        # adaptador.
+        EMA_DOWN=0
+        EMA_UP=0
     fi
 
     ESSID=$(iwgetid -r 2>/dev/null)
@@ -235,14 +413,54 @@ while true; do
         NET_LABEL="󰈁 Connected"
     fi
 
+    # Ethernet = 100% (cable físico, sin degradación por "señal").
+    # WiFi = calidad real reportada por nmcli / /proc/net/wireless.
+    # Esto es lo mismo que ya usa get_iface() para priorizar Ethernet
+    # sobre WiFi, así que el número mostrado siempre es consistente
+    # con cuál interfaz terminó ganando.
+    case "$NET_TYPE" in
+        ethernet)
+            NET_SIGNAL="100"
+            ;;
+        wifi)
+            NET_SIGNAL=$(get_wifi_signal "$IFACE")
+            [ -z "$NET_SIGNAL" ] && NET_SIGNAL="N/A"
+            ;;
+        *)
+            NET_SIGNAL="N/A"
+            ;;
+    esac
+
+    if [ "$NET_TYPE" = "disconnected" ]; then
+        NET_IP="N/A"; NET_MASK="N/A"; NET_GW="N/A"
+    else
+        NET_DETAILS=$(get_net_details "$IFACE")
+        NET_IP="${NET_DETAILS%%|*}"
+        NET_REST="${NET_DETAILS#*|}"
+        NET_MASK="${NET_REST%%|*}"
+        NET_GW="${NET_REST#*|}"
+    fi
+
     CUR_RX=$(read_bytes "$IFACE" rx)
     CUR_TX=$(read_bytes "$IFACE" tx)
-    DOWN_BPS=$(( (CUR_RX - PREV_RX) / 2 ))
-    UP_BPS=$(( (CUR_TX - PREV_TX) / 2 ))
+    RAW_DOWN_BPS=$(( (CUR_RX - PREV_RX) / 2 ))
+    RAW_UP_BPS=$(( (CUR_TX - PREV_TX) / 2 ))
     PREV_RX=$CUR_RX
     PREV_TX=$CUR_TX
-    [ "$DOWN_BPS" -lt 0 ] && DOWN_BPS=0
-    [ "$UP_BPS" -lt 0 ] && UP_BPS=0
+    [ "$RAW_DOWN_BPS" -lt 0 ] && RAW_DOWN_BPS=0
+    [ "$RAW_UP_BPS" -lt 0 ] && RAW_UP_BPS=0
+
+    # Promedio móvil exponencial: mismo valor alimenta el texto
+    # (NET_DOWN/NET_UP) y la gráfica (net_down_raw/net_up_raw), para
+    # que ambos siempre coincidan y no haya un número "instantáneo"
+    # peleando visualmente con una curva más suave.
+    EMA_DOWN=$(awk -v c="$RAW_DOWN_BPS" -v p="$EMA_DOWN" -v a="$EMA_ALPHA" \
+        'BEGIN{printf "%.0f", (c*a)+(p*(1-a))}')
+    EMA_UP=$(awk -v c="$RAW_UP_BPS" -v p="$EMA_UP" -v a="$EMA_ALPHA" \
+        'BEGIN{printf "%.0f", (c*a)+(p*(1-a))}')
+
+    DOWN_BPS=$EMA_DOWN
+    UP_BPS=$EMA_UP
     NET_DOWN=$(human_speed "$DOWN_BPS")
     NET_UP=$(human_speed "$UP_BPS")
 
@@ -287,11 +505,16 @@ while true; do
            --arg disk_model "$DISK_MODEL" \
            --arg disk_fs "$DISK_FS" \
            --arg disk_partition "$DISK_PARTITION" \
+           --arg disk_health "$DISK_HEALTH" \
            --arg uptime "$UPTIME" \
            --arg iface "$IFACE" \
            --arg net_type "$NET_TYPE" \
            --arg nic_name "$NIC_NAME" \
            --arg net_label "$NET_LABEL" \
+           --arg net_signal "$NET_SIGNAL" \
+           --arg net_ip "$NET_IP" \
+           --arg net_mask "$NET_MASK" \
+           --arg net_gw "$NET_GW" \
            --arg net_up "$NET_UP" \
            --arg net_down "$NET_DOWN" \
            --argjson net_down_raw "$DOWN_BPS" \
@@ -301,8 +524,9 @@ while true; do
            '{sysname:$sysname, kernel:$kernel, kernel_type:$kernel_type, machine:$machine, distro:$distro,
              cpu_model:$cpu_model, cpu_model_short:$cpu_model_short, cpu_temp:$cpu_temp,
              mem_info:$mem_info, gpu_model:$gpu_model, disk_model:$disk_model, disk_fs:$disk_fs, 
-             disk_partition:$disk_partition, uptime:$uptime, iface:$iface, net_type:$net_type, 
-             nic_name:$nic_name, net_label:$net_label, net_up:$net_up, net_down:$net_down, 
+             disk_partition:$disk_partition, disk_health:$disk_health, uptime:$uptime, iface:$iface, net_type:$net_type, 
+             nic_name:$nic_name, net_label:$net_label, net_signal:$net_signal, net_ip:$net_ip, net_mask:$net_mask,
+             net_gw:$net_gw, net_up:$net_up, net_down:$net_down, 
              net_down_raw:$net_down_raw, net_up_raw:$net_up_raw, gpu_freq:$gpu_freq, gpu_usage:$gpu_usage}'
 done
 
@@ -333,4 +557,29 @@ done
 # el sistema), pero sí expone datos como el número de serie del equipo
 # y de los módulos de RAM. Restringir la regla a ese único binario
 # (como arriba) evita dar sudo total sin contraseña.
+# ══════════════════════════════════════════════════════════
+
+# ══════════════════════════════════════════════════════════
+#  Permisos requeridos — salud del SSD (smartctl)
+# ══════════════════════════════════════════════════════════
+# Igual que dmidecode, smartctl necesita root para leer los logs SMART
+# del disco. Sin esto, la sección de Storage mostrará "N/A" en vez del
+# porcentaje de salud. Instala smartmontools si no lo tienes:
+#
+#   sudo pacman -S smartmontools
+#
+# Y agrega la regla sudoers dedicada (uno solo puede combinarse con
+# la de dmidecode en el mismo archivo si prefieres):
+#
+#   echo "$(whoami) ALL=(root) NOPASSWD: /usr/bin/smartctl" \
+#     | sudo tee /etc/sudoers.d/smartctl
+#   sudo chmod 440 /etc/sudoers.d/smartctl
+#   sudo visudo -c -f /etc/sudoers.d/smartctl
+#
+# Prueba (debe imprimir JSON, no pedir clave):
+#
+#   sudo -n smartctl -a -j /dev/nvme0n1
+#
+# Nota de seguridad: igual que con dmidecode, restringe la regla a
+# ese único binario en vez de dar sudo total sin contraseña.
 # ══════════════════════════════════════════════════════════
