@@ -1,8 +1,0 @@
-@theme "/home/dangmoz/.config/rofi/themes/default.rasi"
-
-configuration {
-    click-to-exit:    true;
-    hover-select:     true;
-    me-select-entry: "MouseSecondary";
-    me-accept-entry: "MousePrimary";
-}
